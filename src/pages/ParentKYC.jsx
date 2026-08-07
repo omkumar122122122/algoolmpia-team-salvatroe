@@ -3,8 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   FiShield, FiUser, FiCalendar, FiCheckCircle, FiAlertCircle,
   FiClock, FiUpload, FiDownload, FiEye, FiFileText,
-  FiX, FiCheck, FiChevronDown, FiChevronUp, FiRefreshCw,
-  FiLock, FiInfo, FiAlertTriangle, FiUserCheck
+  FiX, FiCheck, FiRefreshCw, FiLock, FiInfo,
+  FiAlertTriangle, FiUserCheck, FiTrash2, FiEdit2, FiExternalLink
 } from "react-icons/fi";
 import Breadcrumb from "../components/Breadcrumb";
 import { PageSkeleton } from "../components/Loader";
@@ -20,6 +20,34 @@ function formatDate(iso) {
     day: "numeric", month: "short", year: "numeric"
   });
 }
+
+function formatBytes(bytes) {
+  if (!bytes) return "0 B";
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+}
+
+const DOCUMENT_TYPE_LABELS = {
+  AADHAAR_CARD: "Aadhaar Card",
+  PAN_CARD: "PAN Card",
+  INCOME_PROOF: "Income Certificate / Proof",
+  ADDRESS_PROOF: "Address Proof",
+  PHOTO_ID: "Photograph / Photo ID",
+  PASSPORT: "Passport",
+  DRIVING_LICENSE: "Driving License",
+  VOTER_ID: "Voter ID",
+  BIRTH_CERTIFICATE: "Birth Certificate",
+  MARRIAGE_CERTIFICATE: "Marriage Certificate",
+  BANK_STATEMENT: "Bank Statement",
+  EMPLOYMENT_LETTER: "Employment Letter",
+  POLICE_CLEARANCE: "Police Clearance Certificate",
+  OTHER: "Other Supporting Document",
+};
+
+const ALLOWED_MIME_TYPES = ["application/pdf", "image/jpeg", "image/jpg", "image/png"];
+const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
 
 /* ── Status badge config ─────────────────────────────────── */
 const statusCfg = {
@@ -95,10 +123,17 @@ export default function ParentKYC() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  /* Client-side staged files before submission */
+  const [stagedDocs, setStagedDocs] = useState({});
+  const [validationError, setValidationError] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+
   /* Modal state */
   const [kycOpen, setKycOpen] = useState(false);
   const [docsOpen, setDocsOpen] = useState(false);
   const [requestUpdateOpen, setRequestUpdateOpen] = useState(false);
+  const [previewDoc, setPreviewDoc] = useState(null);
 
   useEffect(() => {
     loadKycStatus();
@@ -116,42 +151,90 @@ export default function ParentKYC() {
     }
   }
 
+  /* File staging handler with validation */
+  const handleStageFile = (documentType, file) => {
+    setValidationError(null);
+    if (!file) return;
+
+    // Validate type
+    if (!ALLOWED_MIME_TYPES.includes(file.type) && !/\.(pdf|jpg|jpeg|png)$/i.test(file.name)) {
+      setValidationError(`Invalid file type: "${file.name}". Allowed formats: PDF, JPG, JPEG, PNG.`);
+      return;
+    }
+
+    // Validate size
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      setValidationError(`File too large: "${file.name}" (${formatBytes(file.size)}). Maximum size allowed is 5 MB.`);
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+    setStagedDocs((prev) => ({
+      ...prev,
+      [documentType]: {
+        documentType,
+        file,
+        fileName: file.name,
+        fileSize: file.size,
+        mimeType: file.type || (file.name.endsWith(".pdf") ? "application/pdf" : "image/jpeg"),
+        previewUrl,
+      },
+    }));
+  };
+
+  const handleRemoveStaged = (documentType) => {
+    setStagedDocs((prev) => {
+      const next = { ...prev };
+      if (next[documentType]?.previewUrl) {
+        URL.revokeObjectURL(next[documentType].previewUrl);
+      }
+      delete next[documentType];
+      return next;
+    });
+  };
+
+  /* Batch Submit KYC Package */
   async function handleKycSubmit(notes) {
+    const stagedList = Object.values(stagedDocs);
+    setIsSubmitting(true);
+    setUploadProgress(10);
     try {
+      // 1. Upload all staged files in batch to Cloudinary via backend API
+      if (stagedList.length > 0) {
+        setUploadProgress(30);
+        await parentsService.uploadBatchDocuments(kyc.parentId, stagedList);
+        setUploadProgress(70);
+      }
+
+      // 2. Submit KYC package for review
       await parentsService.submitKyc(notes);
+      setUploadProgress(100);
+
+      // Clean up object URLs
+      stagedList.forEach((item) => {
+        if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+      });
+      setStagedDocs({});
+
       await loadKycStatus();
       setKycOpen(false);
     } catch (err) {
-      alert(err.message);
-    }
-  }
-
-  async function handleFileUpload(type, file, docNumber) {
-    try {
-      await parentsService.uploadDocument(kyc.parentId, type, file, docNumber);
-      await loadKycStatus();
-    } catch (err) {
-      alert(err.message);
+      alert(err?.message || "Failed to submit KYC package");
+    } finally {
+      setIsSubmitting(false);
+      setUploadProgress(0);
     }
   }
 
   async function handleRequestUpdateSubmit(reason) {
     try {
       await parentsService.requestDocumentUpdate(reason);
-      alert('Document update request submitted successfully for administrator review.');
+      alert("Document update request submitted successfully for administrator review.");
       setRequestUpdateOpen(false);
       await loadKycStatus();
     } catch (err) {
-      alert(err?.message || 'Failed to submit document update request');
+      alert(err?.message || "Failed to submit document update request");
     }
-  }
-
-  function handleAcknowledgementDownload() {
-    if (!kyc?.documents || kyc.documents.length === 0) {
-      alert('No uploaded KYC documents found.');
-      return;
-    }
-    setDocsOpen(true);
   }
 
   if (loading) return <PageSkeleton />;
@@ -165,11 +248,13 @@ export default function ParentKYC() {
     </div>
   );
 
-  const isApproved = kyc.kycStatus === 'APPROVED';
-  const canSubmit = kyc.kycStatus === 'PENDING' || kyc.kycStatus === 'RE_UPLOAD_REQUIRED';
+  const isApproved = kyc.kycStatus === "APPROVED";
+  const isRejected = kyc.kycStatus === "REJECTED";
+  const isReuploadRequired = kyc.kycStatus === "RE_UPLOAD_REQUIRED";
+  const canSubmit = kyc.kycStatus === "PENDING" || isRejected || isReuploadRequired;
 
   const summaryCards = [
-    { label: "KYC Status", value: kyc.kycStatus, sub: isApproved ? "One-Time Complete" : "Verification Pending", accent: isApproved ? "border-l-green-500" : "border-l-amber-500", iconBg: "bg-green-50 text-green-600" },
+    { label: "KYC Status", value: kyc.kycStatus, sub: isApproved ? "One-Time Complete" : isRejected ? "Re-upload Required" : "Verification Pending", accent: isApproved ? "border-l-green-500" : isRejected ? "border-l-red-500" : "border-l-amber-500", iconBg: isApproved ? "bg-green-50 text-green-600" : isRejected ? "bg-red-50 text-red-600" : "bg-amber-50 text-amber-600" },
     { label: "Compliance Status", value: kyc.complianceStatus, sub: isApproved ? "Compliant & Verified" : "Action Needed", accent: isApproved ? "border-l-emerald-500" : "border-l-amber-500", iconBg: "bg-emerald-50 text-emerald-600" },
     { label: "Submitted Date", value: formatDate(kyc.lastKycDate), sub: kyc.lastKycDate ? "Package Submitted" : "Not Submitted", accent: "border-l-indigo-500", iconBg: "bg-indigo-50 text-indigo-600" },
     { label: "Verified Date", value: formatDate(kyc.kycApprovedAt), sub: isApproved ? "Verification Granted" : "Pending Verification", accent: "border-l-violet-500", iconBg: "bg-violet-50 text-violet-600" },
@@ -195,15 +280,37 @@ export default function ParentKYC() {
           </div>
           <div className="flex shrink-0 flex-wrap gap-2">
             {canSubmit && (
-              <Button icon={FiRefreshCw} onClick={() => setKycOpen(true)}>Submit KYC Package</Button>
+              <Button icon={FiRefreshCw} onClick={() => setKycOpen(true)}>
+                Submit KYC Package
+              </Button>
             )}
             {isApproved && (
-              <Button icon={FiLock} variant="secondary" onClick={() => setRequestUpdateOpen(true)}>Request Document Update</Button>
+              <Button icon={FiLock} variant="secondary" onClick={() => setRequestUpdateOpen(true)}>
+                Request Document Update
+              </Button>
             )}
-            <Button icon={FiEye} variant="secondary" onClick={() => setDocsOpen(true)}>View Documents</Button>
+            <Button icon={FiEye} variant="secondary" onClick={() => setDocsOpen(true)}>
+              View Documents
+            </Button>
           </div>
         </div>
       </motion.div>
+
+      {/* Rejection / Re-upload Alert Banner */}
+      {(isRejected || isReuploadRequired) && (
+        <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="rounded-2xl border border-red-200 bg-red-50/90 p-5 dark:border-red-900/40 dark:bg-red-950/30 text-red-900 dark:text-red-200 shadow-sm space-y-2">
+          <div className="flex items-center gap-2.5 font-bold text-base text-red-950 dark:text-red-100">
+            <FiAlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400 shrink-0" />
+            <span>KYC Verification Action Required</span>
+          </div>
+          <p className="text-sm font-semibold opacity-95">
+            Remarks from Administrator: <span className="font-bold underline">{kyc.kycRejectionReason || kyc.rejectionReason || "Please review and re-upload your verification documents."}</span>
+          </p>
+          <p className="text-xs opacity-80">
+            Select the required document type below, stage your updated file, preview it, and click <span className="font-bold underline">Submit KYC Package</span> to resubmit for approval.
+          </p>
+        </motion.div>
+      )}
 
       {/* Summary Metric Cards */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
@@ -228,22 +335,46 @@ export default function ParentKYC() {
         <div className="space-y-6">
           {/* Identity Verification Main Card */}
           <IdentityVerificationCard kyc={kyc} onViewDocs={() => setDocsOpen(true)} onRequestUpdate={() => setRequestUpdateOpen(true)} />
-          {/* Document Management Section */}
-          <KycFormSection kyc={kyc} onUpload={handleFileUpload} />
-          {/* History Section */}
+
+          {/* Document Staging & Preview Section */}
+          <KycStagingSection
+            kyc={kyc}
+            stagedDocs={stagedDocs}
+            validationError={validationError}
+            onStage={handleStageFile}
+            onRemove={handleRemoveStaged}
+            onPreview={setPreviewDoc}
+            onSubmitPackage={() => setKycOpen(true)}
+          />
+
+          {/* Verification History */}
           <VerificationHistory history={kyc.verificationHistory} />
         </div>
 
         {/* Right Sidebar: Status & Document Summary */}
         <div className="space-y-6">
-          <IdentityStatusSummaryPanel kyc={kyc} onViewDocs={() => setDocsOpen(true)} />
+          <IdentityStatusSummaryPanel kyc={kyc} onViewDocs={() => setDocsOpen(true)} stagedCount={Object.keys(stagedDocs).length} />
         </div>
       </div>
 
       {/* Modals */}
-      <SubmitKycModal open={kycOpen} onClose={() => setKycOpen(false)} onConfirm={handleKycSubmit} />
+      <SubmitKycModal
+        open={kycOpen}
+        onClose={() => setKycOpen(false)}
+        onConfirm={handleKycSubmit}
+        stagedCount={Object.keys(stagedDocs).length}
+        existingCount={kyc.documents?.length || 0}
+        isSubmitting={isSubmitting}
+        uploadProgress={uploadProgress}
+      />
       <RequestUpdateModal open={requestUpdateOpen} onClose={() => setRequestUpdateOpen(false)} onConfirm={handleRequestUpdateSubmit} />
-      <ViewDocsModal open={docsOpen} onClose={() => setDocsOpen(false)} docs={kyc.documents} />
+      <ViewDocsModal open={docsOpen} onClose={() => setDocsOpen(false)} docs={kyc.documents} onPreview={setPreviewDoc} />
+
+      <AnimatePresence>
+        {previewDoc && (
+          <DocumentPreviewModal doc={previewDoc} onClose={() => setPreviewDoc(null)} />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -254,13 +385,13 @@ export default function ParentKYC() {
 
 /* ── Identity Verification Card ─────────────────────────── */
 function IdentityVerificationCard({ kyc, onViewDocs, onRequestUpdate }) {
-  const isApproved = kyc.kycStatus === 'APPROVED';
+  const isApproved = kyc.kycStatus === "APPROVED";
   const docsSubmittedCount = kyc.documents?.length || 0;
   const docsRequiredCount = kyc.requiredDocuments?.length || 0;
 
   return (
     <Section
-      title="Identity Verification"
+      title="Identity Verification Profile"
       icon={FiShield}
       action={
         <Button icon={FiEye} variant="secondary" size="sm" onClick={onViewDocs}>
@@ -273,7 +404,7 @@ function IdentityVerificationCard({ kyc, onViewDocs, onRequestUpdate }) {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-xl bg-slate-50 p-4 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-4">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-civic-600 text-xl font-bold text-white shadow-sm">
-              {kyc.parentAvatar || 'P'}
+              {kyc.parentAvatar || "P"}
             </div>
             <div>
               <h3 className="text-base font-extrabold text-slate-900 dark:text-white">{kyc.parentName}</h3>
@@ -310,7 +441,7 @@ function IdentityVerificationCard({ kyc, onViewDocs, onRequestUpdate }) {
         ) : (
           <div className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50/70 p-4 text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300 text-xs">
             <FiInfo className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
-            <p><span className="font-bold">Verification Pending:</span> Please upload all required identity documents and submit your KYC package for review.</p>
+            <p><span className="font-bold">Verification Pending:</span> Stage required identity documents below, view their previews, and click <span className="font-bold underline">Submit KYC Package</span>.</p>
           </div>
         )}
       </div>
@@ -318,88 +449,171 @@ function IdentityVerificationCard({ kyc, onViewDocs, onRequestUpdate }) {
   );
 }
 
-/* ── Document Management Section ─────────────────────────── */
-function KycFormSection({ kyc, onUpload }) {
-  const isApproved = kyc.kycStatus === 'APPROVED';
-  const [selectedDoc, setSelectedDoc] = useState(kyc.missingDocuments?.[0] || "");
-  const [file, setFile] = useState(null);
-  const [docNum, setDocNum] = useState("");
+/* ── Document Staging & Preview Section ──────────────────── */
+function KycStagingSection({ kyc, stagedDocs, validationError, onStage, onRemove, onPreview, onSubmitPackage }) {
+  const isApproved = kyc.kycStatus === "APPROVED";
+  const [selectedType, setSelectedType] = useState(kyc.missingDocuments?.[0] || "AADHAAR_CARD");
 
-  const handleUpload = () => {
-    if (!selectedDoc || !file) return;
-    onUpload(selectedDoc, file, docNum);
-    setFile(null);
-    setDocNum("");
-  };
+  const stagedList = Object.values(stagedDocs);
+  const requiredTypes = kyc.requiredDocuments || ["AADHAAR_CARD", "PAN_CARD", "INCOME_PROOF", "ADDRESS_PROOF", "PHOTO_ID"];
 
   return (
-    <Section title="Documents Submitted" icon={FiUpload}>
-      <div className="p-6 space-y-5">
+    <Section title="Required Documents & Staged Uploads" icon={FiUpload}>
+      <div className="p-6 space-y-6">
         {/* Required Documents Pills */}
         <div>
           <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 block">Required Verification Documents</label>
           <div className="flex flex-wrap gap-2">
-            {kyc.requiredDocuments?.map((d) => {
-              const isMissing = kyc.missingDocuments?.includes(d);
+            {requiredTypes.map((d) => {
+              const hasUploaded = kyc.documents?.some((doc) => doc.documentType === d && doc.status !== "REJECTED");
+              const hasStaged = !!stagedDocs[d];
               return (
                 <span
                   key={d}
                   className={classNames(
-                    "px-3 py-1.5 rounded-lg text-xs font-bold border flex items-center gap-1.5",
-                    isMissing
-                      ? "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300"
-                      : "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300"
+                    "px-3 py-1.5 rounded-xl text-xs font-bold border flex items-center gap-1.5 transition",
+                    hasUploaded
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300"
+                      : hasStaged
+                      ? "border-indigo-200 bg-indigo-50 text-indigo-800 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-300"
+                      : "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300"
                   )}
                 >
-                  {isMissing ? <FiClock className="h-3 w-3" /> : <FiCheckCircle className="h-3 w-3" />}
-                  {d.replace(/_/g, ' ')}
+                  {hasUploaded ? <FiCheckCircle className="h-3.5 w-3.5 text-emerald-600" /> : hasStaged ? <FiClock className="h-3.5 w-3.5 text-indigo-600" /> : <FiAlertTriangle className="h-3.5 w-3.5 text-amber-600" />}
+                  {DOCUMENT_TYPE_LABELS[d] || d.replace(/_/g, " ")}
+                  {hasStaged && <span className="ml-1 text-[10px] bg-indigo-200 dark:bg-indigo-900 px-1.5 py-0.5 rounded">Staged</span>}
                 </span>
               );
             })}
           </div>
         </div>
 
-        {/* Upload Interface (Disabled if Approved) */}
+        {/* Validation Error Alert */}
+        {validationError && (
+          <div className="flex items-center gap-2.5 rounded-xl border border-red-200 bg-red-50 p-3.5 text-xs font-bold text-red-700 dark:border-red-900/30 dark:bg-red-950/30 dark:text-red-300">
+            <FiAlertCircle className="h-4 w-4 shrink-0 text-red-600" />
+            <span>{validationError}</span>
+          </div>
+        )}
+
+        {/* File Selection Bar (Disabled if Approved) */}
         {!isApproved ? (
-          <div className="border-t border-gray-100 dark:border-slate-800 pt-4 space-y-3">
-            <p className="text-sm font-bold text-slate-900 dark:text-white">Upload / Re-upload Document</p>
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              <select
-                value={selectedDoc}
-                onChange={(e) => setSelectedDoc(e.target.value)}
-                className="input-field w-full"
-              >
-                <option value="">Select Document Type</option>
-                {kyc.requiredDocuments?.map((d) => (
-                  <option key={d} value={d}>{d.replace(/_/g, ' ')}</option>
-                ))}
-              </select>
-              <input
-                type="text"
-                placeholder="Document Number (Optional)"
-                className="input-field w-full"
-                value={docNum}
-                onChange={(e) => setDocNum(e.target.value)}
-              />
-              <input
-                type="file"
-                accept=".pdf,.jpg,.jpeg,.png"
-                onChange={(e) => setFile(e.target.files[0])}
-                className="text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-civic-50 file:text-civic-700 hover:file:bg-civic-100 cursor-pointer"
-              />
+          <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50/50 p-4 dark:border-slate-800 dark:bg-slate-900/50 space-y-3">
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">Select Document to Stage &amp; Preview</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-500 mb-1">1. Document Type</label>
+                <select
+                  value={selectedType}
+                  onChange={(e) => setSelectedType(e.target.value)}
+                  className="input-field w-full text-xs font-semibold"
+                >
+                  {Object.entries(DOCUMENT_TYPE_LABELS).map(([key, label]) => (
+                    <option key={key} value={key}>{label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-500 mb-1">2. Choose File (PDF/JPG/PNG, Max 5MB)</label>
+                <input
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  onChange={(e) => {
+                    if (e.target.files?.[0]) {
+                      onStage(selectedType, e.target.files[0]);
+                      e.target.value = "";
+                    }
+                  }}
+                  className="text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-civic-600 file:text-white hover:file:bg-civic-700 cursor-pointer w-full"
+                />
+              </div>
             </div>
-            <div className="flex justify-end pt-2">
-              <Button onClick={handleUpload} disabled={!file || !selectedDoc} icon={FiUpload}>
-                Upload Document
-              </Button>
-            </div>
+            <p className="text-[11px] text-slate-400">
+              * Note: Files are verified and previewed locally first. Upload to cloud server occurs only when you click <span className="font-bold underline">Submit KYC Package</span>.
+            </p>
           </div>
         ) : (
-          <div className="border-t border-gray-100 dark:border-slate-800 pt-4 flex items-center justify-between text-xs text-slate-500">
-            <span className="flex items-center gap-1.5 font-semibold">
+          <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950 flex items-center justify-between text-xs text-slate-500">
+            <span className="flex items-center gap-2 font-bold text-slate-700 dark:text-slate-300">
               <FiLock className="h-4 w-4 text-emerald-600" />
-              Direct document upload disabled for verified accounts.
+              Document selection is locked for verified profiles.
             </span>
+          </div>
+        )}
+
+        {/* Staged Cards Grid */}
+        {stagedList.length > 0 && (
+          <div className="space-y-3 pt-2">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-extrabold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                Staged Documents Ready for Submission ({stagedList.length})
+              </h4>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              {stagedList.map((doc) => (
+                <div
+                  key={doc.documentType}
+                  className="relative flex flex-col justify-between rounded-xl border border-indigo-200 bg-indigo-50/40 p-4 shadow-sm dark:border-indigo-900/50 dark:bg-indigo-950/20"
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="inline-flex items-center gap-1 text-[11px] font-extrabold text-indigo-700 dark:text-indigo-300 uppercase tracking-wider">
+                        <FiFileText className="h-3.5 w-3.5" />
+                        {DOCUMENT_TYPE_LABELS[doc.documentType] || doc.documentType}
+                      </span>
+                      <span className="text-[10px] font-bold text-slate-400">{formatBytes(doc.fileSize)}</span>
+                    </div>
+                    <p className="text-xs font-bold text-slate-900 dark:text-white truncate" title={doc.fileName}>
+                      {doc.fileName}
+                    </p>
+                  </div>
+
+                  <div className="mt-4 flex items-center justify-between border-t border-indigo-100 pt-3 dark:border-indigo-900/40">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => onPreview({ url: doc.previewUrl, originalName: doc.fileName, documentType: doc.documentType, mimeType: doc.mimeType })}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-white text-indigo-700 border border-indigo-200 hover:bg-indigo-50 dark:bg-slate-800 dark:text-indigo-300 dark:border-indigo-800 transition"
+                      >
+                        <FiEye className="h-3.5 w-3.5" /> View
+                      </button>
+
+                      <label className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700 transition cursor-pointer">
+                        <FiEdit2 className="h-3.5 w-3.5" /> Replace
+                        <input
+                          type="file"
+                          accept=".pdf,.jpg,.jpeg,.png"
+                          className="hidden"
+                          onChange={(e) => {
+                            if (e.target.files?.[0]) {
+                              onStage(doc.documentType, e.target.files[0]);
+                              e.target.value = "";
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => onRemove(doc.documentType)}
+                      className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition"
+                      title="Remove from staging"
+                    >
+                      <FiTrash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <Button icon={FiUpload} onClick={onSubmitPackage}>
+                Submit KYC Package ({stagedList.length} Files)
+              </Button>
+            </div>
           </div>
         )}
       </div>
@@ -409,29 +623,65 @@ function KycFormSection({ kyc, onUpload }) {
 
 /* ── Verification History ────────────────────────────────── */
 function VerificationHistory({ history }) {
+  const cleanHistory = history?.filter((h) => {
+    if (!h) return false;
+    // Exclude individual draft/pending unreviewed document upload entries
+    if (h.status === 'UPLOADED' || h.status === 'PENDING' || h.status === 'Draft / Pending') return false;
+    return Boolean(h.attemptNumber || h.status === 'APPROVED' || h.status === 'REJECTED' || h.status === 'SUBMITTED' || h.status === 'UNDER_REVIEW' || h.status === 'RE_UPLOAD_REQUIRED');
+  });
+
   return (
-    <Section title="Verification History & Audit Log" icon={FiClock}>
+    <Section title="Verification Audit Trail & History" icon={FiClock}>
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
-          <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 font-bold text-xs">
+          <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 font-bold text-xs uppercase tracking-wider">
             <tr>
-              <th className="p-3.5">Document Type</th>
+              <th className="p-3.5">Verification Activity</th>
               <th className="p-3.5">Status</th>
               <th className="p-3.5">Date</th>
-              <th className="p-3.5">Review Notes</th>
+              <th className="p-3.5">Audit Remarks & Notes</th>
             </tr>
           </thead>
           <tbody className="divide-y dark:divide-slate-800">
-            {history?.map((h, i) => (
-              <tr key={i} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
-                <td className="p-3.5 font-bold text-slate-900 dark:text-white">{h.type.replace(/_/g, ' ')}</td>
-                <td className="p-3.5"><StatusBadge status={h.status} /></td>
-                <td className="p-3.5 text-xs text-slate-500">{formatDate(h.date)}</td>
-                <td className="p-3.5 text-xs text-slate-400">{h.notes || '—'}</td>
+            {cleanHistory?.map((h, i) => {
+              const label = h.attemptNumber
+                ? `KYC Submission Package (Attempt #${h.attemptNumber})`
+                : (DOCUMENT_TYPE_LABELS[h.type] || h.type?.replace(/_/g, " ") || "Document Upload");
+
+              const noteText = typeof h.notes === 'string'
+                ? h.notes
+                : h.reviewedBy
+                ? `Verified by ${h.reviewedBy}`
+                : h.fileName
+                ? `File: ${h.fileName}`
+                : "Record logged";
+
+              return (
+                <tr key={h.id || i} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition">
+                  <td className="p-3.5">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 text-civic-600 dark:text-civic-400 font-bold shrink-0">
+                        <FiFileText className="h-3.5 w-3.5" />
+                      </div>
+                      <span className="font-bold text-slate-900 dark:text-white text-xs">{label}</span>
+                    </div>
+                  </td>
+                  <td className="p-3.5"><StatusBadge status={h.status} /></td>
+                  <td className="p-3.5 text-xs font-medium text-slate-500 dark:text-slate-400">{formatDate(h.date)}</td>
+                  <td className="p-3.5 text-xs text-slate-600 dark:text-slate-300 max-w-xs truncate" title={noteText}>
+                    {noteText}
+                  </td>
+                </tr>
+              );
+            })}
+            {(!cleanHistory || cleanHistory.length === 0) && (
+              <tr>
+                <td colSpan="4" className="p-8 text-center text-slate-400 dark:text-slate-500">
+                  <FiClock className="mx-auto mb-2 h-8 w-8 opacity-40" />
+                  <p className="text-xs font-bold text-slate-600 dark:text-slate-400">No verification activity logged yet</p>
+                  <p className="text-[11px] mt-0.5">Your KYC package submission attempts and audit reviews will appear here.</p>
+                </td>
               </tr>
-            ))}
-            {(!history || history.length === 0) && (
-              <tr><td colSpan="4" className="p-8 text-center text-slate-400">No verification activity logged yet.</td></tr>
             )}
           </tbody>
         </table>
@@ -441,8 +691,8 @@ function VerificationHistory({ history }) {
 }
 
 /* ── Right Panel: Identity Status & Documents Summary ────── */
-function IdentityStatusSummaryPanel({ kyc, onViewDocs }) {
-  const isApproved = kyc.kycStatus === 'APPROVED';
+function IdentityStatusSummaryPanel({ kyc, onViewDocs, stagedCount }) {
+  const isApproved = kyc.kycStatus === "APPROVED";
 
   return (
     <div className="space-y-4">
@@ -473,17 +723,17 @@ function IdentityStatusSummaryPanel({ kyc, onViewDocs }) {
             <span className="font-bold text-slate-900 dark:text-white">{formatDate(kyc.kycApprovedAt)}</span>
           </div>
           <div className="flex justify-between items-center py-1 border-b border-slate-50 dark:border-slate-800/50">
-            <span className="text-slate-500">Verified By</span>
-            <span className="font-bold text-slate-900 dark:text-white">{kyc.verifiedBy || (isApproved ? "Authority Admin" : "—")}</span>
+            <span className="text-slate-500">Staged Documents</span>
+            <span className="font-bold text-indigo-600 dark:text-indigo-400">{stagedCount} Ready</span>
           </div>
           <div className="flex justify-between items-center py-1">
-            <span className="text-slate-500">Documents Submitted</span>
-            <span className="font-bold text-slate-900 dark:text-white">{kyc.documents?.length || 0} / {kyc.requiredDocuments?.length || 0}</span>
+            <span className="text-slate-500">Cloud Storage</span>
+            <span className="font-bold text-emerald-600 dark:text-emerald-400">Cloudinary Encrypted</span>
           </div>
         </div>
 
         <Button fullWidth variant="secondary" icon={FiEye} onClick={onViewDocs}>
-          View Documents
+          View Submitted Documents
         </Button>
       </div>
 
@@ -491,10 +741,10 @@ function IdentityStatusSummaryPanel({ kyc, onViewDocs }) {
       <div className="rounded-2xl border border-blue-100 bg-blue-50/50 p-4 dark:border-blue-900/30 dark:bg-blue-950/20 text-xs text-blue-900 dark:text-blue-200 space-y-2">
         <div className="flex items-center gap-2 font-bold text-sm text-blue-950 dark:text-blue-100">
           <FiInfo className="h-4 w-4 text-blue-600" />
-          One-Time KYC Policy
+          Production KYC Policy
         </div>
         <p className="leading-relaxed opacity-90">
-          KYC verification is completed once prior to child adoption. After approval, documents are securely archived and locked against unauthorized edits.
+          All document uploads are processed securely via memory buffers directly to Cloudinary storage. No binary files are stored on local servers. Once approved, documents are locked against edits.
         </p>
       </div>
     </div>
@@ -502,24 +752,43 @@ function IdentityStatusSummaryPanel({ kyc, onViewDocs }) {
 }
 
 /* ── Modals ──────────────────────────────────────────────── */
-function SubmitKycModal({ open, onClose, onConfirm }) {
+
+function SubmitKycModal({ open, onClose, onConfirm, stagedCount, existingCount, isSubmitting, uploadProgress }) {
   const [notes, setNotes] = useState("");
   if (!open) return null;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm">
       <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
-        <h3 className="text-lg font-bold">Submit KYC Package</h3>
-        <p className="text-sm text-slate-500">Submit your uploaded identity documents for administrator review.</p>
-        <textarea
-          className="input-field w-full h-24 resize-none"
-          placeholder="Optional submission notes for the reviewer..."
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-        />
-        <div className="flex gap-3">
-          <Button variant="secondary" fullWidth onClick={onClose}>Cancel</Button>
-          <Button fullWidth onClick={() => onConfirm(notes)}>Submit Package</Button>
-        </div>
+        <h3 className="text-lg font-bold text-slate-900 dark:text-white">Submit KYC Package</h3>
+        <p className="text-xs text-slate-500">
+          You are submitting <span className="font-bold text-indigo-600 dark:text-indigo-400">{stagedCount} staged file(s)</span> along with existing documents for central administrator verification.
+        </p>
+
+        {isSubmitting ? (
+          <div className="space-y-3 py-4">
+            <div className="flex items-center justify-between text-xs font-bold text-indigo-600">
+              <span>Uploading to Cloud Storage…</span>
+              <span>{uploadProgress}%</span>
+            </div>
+            <div className="h-2.5 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+              <div className="h-full bg-civic-600 transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
+            </div>
+          </div>
+        ) : (
+          <>
+            <textarea
+              className="input-field w-full h-24 resize-none text-xs"
+              placeholder="Optional notes for the reviewer (e.g. Updating address proof)..."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+            />
+            <div className="flex gap-3">
+              <Button variant="secondary" fullWidth onClick={onClose}>Cancel</Button>
+              <Button fullWidth onClick={() => onConfirm(notes)} icon={FiUpload}>Confirm Submission</Button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -532,10 +801,10 @@ function RequestUpdateModal({ open, onClose, onConfirm }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm">
       <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
-        <h3 className="text-lg font-bold">Request Document Update</h3>
-        <p className="text-sm text-slate-500">Specify why you need to update or replace your verified identity documents.</p>
+        <h3 className="text-lg font-bold text-slate-900 dark:text-white">Request Document Update</h3>
+        <p className="text-xs text-slate-500">Specify why you need to update or replace your verified identity documents.</p>
         <textarea
-          className="input-field w-full h-24 resize-none"
+          className="input-field w-full h-24 resize-none text-xs"
           placeholder="Reason for update (e.g. Address changed, Passport renewed)..."
           value={reason}
           onChange={(e) => setReason(e.target.value)}
@@ -549,34 +818,47 @@ function RequestUpdateModal({ open, onClose, onConfirm }) {
   );
 }
 
-function ViewDocsModal({ open, onClose, docs }) {
+function ViewDocsModal({ open, onClose, docs, onPreview }) {
   if (!open) return null;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm">
       <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 max-w-2xl w-full shadow-2xl space-y-4">
         <div className="flex justify-between items-center border-b border-slate-100 pb-3 dark:border-slate-800">
-          <h3 className="text-lg font-bold">Submitted Identity Documents</h3>
-          <Button variant="ghost" icon={FiX} onClick={onClose} />
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white">Submitted Identity Documents</h3>
+          <Button variant="ghost" icon={FiX} onClick={onClose} className="px-2" />
         </div>
+
         <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
           {docs?.map((doc) => (
             <div key={doc.id} className="flex items-center justify-between p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40">
               <div className="flex items-center gap-3">
-                <FiFileText className="h-5 w-5 text-civic-600" />
+                <FiFileText className="h-5 w-5 text-civic-600 shrink-0" />
                 <div>
-                  <p className="text-sm font-bold">{doc.documentType.replace(/_/g, ' ')}</p>
-                  <p className="text-[10px] text-slate-400">{doc.fileName}</p>
+                  <p className="text-xs font-bold text-slate-900 dark:text-white">
+                    {DOCUMENT_TYPE_LABELS[doc.documentType] || doc.documentType?.replace(/_/g, " ")}
+                  </p>
+                  <p className="text-[10px] text-slate-400 truncate max-w-xs">{doc.fileName}</p>
                 </div>
               </div>
+
               <div className="flex items-center gap-3">
                 <StatusBadge status={doc.status} />
+                <button
+                  type="button"
+                  onClick={() => onPreview({ url: doc.storageUrl, originalName: doc.fileName, documentType: doc.documentType, mimeType: doc.mimeType })}
+                  className="p-2 rounded-lg text-slate-400 hover:text-civic-600 hover:bg-white dark:hover:bg-slate-800 transition"
+                  title="Preview Document"
+                >
+                  <FiEye className="h-4 w-4" />
+                </button>
                 {doc.storageUrl && (
                   <a
                     href={doc.storageUrl}
                     target="_blank"
                     rel="noreferrer"
                     className="p-2 rounded-lg text-slate-400 hover:text-civic-600 hover:bg-white dark:hover:bg-slate-800 transition"
-                    title="View Document"
+                    title="Download File"
                   >
                     <FiDownload className="h-4 w-4" />
                   </a>
@@ -584,11 +866,81 @@ function ViewDocsModal({ open, onClose, docs }) {
               </div>
             </div>
           ))}
+
           {(!docs || docs.length === 0) && (
             <p className="text-center py-10 text-slate-400 text-sm">No documents submitted yet.</p>
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ── Document Preview Modal (PDF & Image Viewer) ───────── */
+function DocumentPreviewModal({ doc, onClose }) {
+  if (!doc) return null;
+
+  const url = doc.storageUrl || doc.url || doc.previewUrl;
+  const docName = doc.originalName || doc.fileName || doc.name || DOCUMENT_TYPE_LABELS[doc.documentType] || "Document";
+  const isPdf = doc.mimeType?.includes("pdf") || url?.toLowerCase().endsWith(".pdf") || docName?.toLowerCase().endsWith(".pdf");
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
+      <motion.div
+        initial={{ scale: 0.95, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.95, opacity: 0 }}
+        className="w-full max-w-4xl rounded-2xl border border-white/70 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-slate-900 space-y-4 flex flex-col max-h-[90vh]"
+      >
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800 shrink-0">
+          <div className="flex items-center gap-3">
+            <FiFileText className="h-5 w-5 text-civic-600" />
+            <div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">{docName}</h3>
+              <p className="text-xs text-slate-400">{DOCUMENT_TYPE_LABELS[doc.documentType] || doc.documentType || "Document Preview"}</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {url && (
+              <a
+                href={url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-civic-50 text-civic-700 hover:bg-civic-100 transition"
+              >
+                <FiExternalLink className="h-3.5 w-3.5" />
+                Open / Download
+              </a>
+            )}
+            <Button variant="ghost" icon={FiX} onClick={onClose} className="px-2" />
+          </div>
+        </div>
+
+        {/* Content Viewer Container */}
+        <div className="flex-1 min-h-[450px] overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-950 flex items-center justify-center p-2">
+          {url ? (
+            isPdf ? (
+              <iframe
+                src={url}
+                title={docName}
+                className="w-full h-full min-h-[500px] rounded-lg border-0"
+              />
+            ) : (
+              <img
+                src={url}
+                alt={docName}
+                className="max-h-[65vh] w-auto max-w-full rounded-lg shadow-md object-contain"
+              />
+            )
+          ) : (
+            <div className="text-center py-12 text-slate-400 text-sm">
+              <FiFileText className="h-10 w-10 mx-auto mb-2 opacity-50" />
+              Document URL is not available.
+            </div>
+          )}
+        </div>
+      </motion.div>
     </div>
   );
 }

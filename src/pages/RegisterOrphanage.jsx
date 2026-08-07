@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, forwardRef } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { FiBriefcase, FiCamera, FiCheckSquare, FiCreditCard, FiFileText, FiHome, FiLock, FiMail, FiPhone, FiShield, FiUpload, FiUserCheck, FiUsers, FiRefreshCw } from "react-icons/fi";
@@ -27,8 +27,7 @@ export default function RegisterOrphanage() {
   const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState("");
-  const [generatedPassword, setGeneratedPassword] = useState("");
-  const { register, handleSubmit, reset, formState, setValue, watch } = useForm({
+  const { register, handleSubmit, reset, formState, watch } = useForm({
     defaultValues: {
       organizationType: "NGO",
       country: "India",
@@ -37,25 +36,22 @@ export default function RegisterOrphanage() {
       visitorFaceVerificationEnabled: "No",
       gpsTrackingAvailable: "No",
       emergencyAlertSystemEnabled: "Yes",
-      password: ""
+      password: "",
+      confirmPassword: ""
     }
   });
-
-  // Password generation function
-  const generatePassword = () => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
-    let password = '';
-    for (let i = 0; i < 12; i++) {
-      password += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    setValue("password", password);
-    setGeneratedPassword(password);
-  };
+  const errors = formState.errors;
 
   const onSubmit = async (values) => {
     try {
       setLoading(true);
       setSuccess("");
+
+      if (values.password !== values.confirmPassword) {
+        showToast?.('Passwords do not match', 'error');
+        setLoading(false);
+        return;
+      }
 
       // Extract files from form inputs
       const files = {
@@ -80,12 +76,9 @@ export default function RegisterOrphanage() {
 
       const result = await orphanagesService.create(formData, files);
       
-      setSuccess(`✅ Orphanage registered successfully! Code: ${result.code}`);
-      // Store credentials for display
-      if (result.loginEmail && result.generatedPassword) {
-        setGeneratedPassword(result.generatedPassword);
-      }
-      showToast?.('Orphanage registered successfully', 'success');
+      const createdCode = result?.code || result?.data?.code || '';
+      setSuccess(`✅ Orphanage registered successfully! ${createdCode ? `Code: ${createdCode}` : ''}`);
+      showToast?.('Orphanage account created successfully', 'success');
       
       // Reset form after 2 seconds and navigate
       setTimeout(() => {
@@ -113,9 +106,9 @@ export default function RegisterOrphanage() {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <Section title="1. Organization Details">
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            <FormInput label="Orphanage Name *" icon={FiHome} error={formState.errors.name?.message} {...register("name", { required: "Orphanage name is required" })} />
-            <FormInput label="Registration Number *" icon={FiFileText} error={formState.errors.registrationNumber?.message} {...register("registrationNumber", { required: "Registration number is required" })} />
-            <FormInput label="Government License Number *" icon={FiShield} error={formState.errors.governmentLicenseNumber?.message} {...register("governmentLicenseNumber", { required: "Government license number is required" })} />
+            <FormInput label="Orphanage Name *" icon={FiHome} error={errors.name?.message} {...register("name", { required: "Orphanage name is required" })} />
+            <FormInput label="Registration Number *" icon={FiFileText} error={errors.registrationNumber?.message} {...register("registrationNumber", { required: "Registration number is required" })} />
+            <FormInput label="Government License Number *" icon={FiShield} error={errors.governmentLicenseNumber?.message} {...register("governmentLicenseNumber", { required: "Government license number is required" })} />
             <FormInput label="Date of Establishment" type="date" icon={FiFileText} {...register("establishmentDate")} />
             <Select label="Type of Organization" icon={FiBriefcase} {...register("organizationType")}>
               <option value="NGO">NGO</option>
@@ -131,8 +124,8 @@ export default function RegisterOrphanage() {
 
         <Section title="2. Contact Information">
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <FormInput label="Official Email *" type="email" icon={FiMail} error={formState.errors.officialEmail?.message} {...register("officialEmail", { required: "Official email is required" })} />
-            <FormInput label="Phone Number *" type="tel" icon={FiPhone} error={formState.errors.phone?.message} {...register("phone", { required: "Phone number is required" })} />
+            <FormInput label="Official Email *" type="email" icon={FiMail} error={errors.officialEmail?.message} {...register("officialEmail", { required: "Official email is required" })} />
+            <FormInput label="Phone Number *" type="tel" icon={FiPhone} error={errors.phone?.message} {...register("phone", { required: "Phone number is required" })} />
             <FormInput label="Alternative Contact Number" type="tel" icon={FiPhone} {...register("alternativeContact")} />
             <FormInput label="Website (Optional)" type="url" icon={FiHome} {...register("website")} />
           </div>
@@ -141,9 +134,9 @@ export default function RegisterOrphanage() {
         <Section title="3. Address">
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <FormInput label="Country" icon={FiHome} {...register("country")} />
-            <FormInput label="State *" icon={FiHome} error={formState.errors.state?.message} {...register("state", { required: "State is required" })} />
+            <FormInput label="State *" icon={FiHome} error={errors.state?.message} {...register("state", { required: "State is required" })} />
             <FormInput label="District" icon={FiHome} {...register("district")} />
-            <FormInput label="City *" icon={FiHome} error={formState.errors.city?.message} {...register("city", { required: "City is required" })} />
+            <FormInput label="City *" icon={FiHome} error={errors.city?.message} {...register("city", { required: "City is required" })} />
             <FormInput label="PIN Code" icon={FiHome} {...register("pinCode")} />
           </div>
           <TextArea label="Full Address" icon={FiHome} {...register("fullAddress")} />
@@ -151,9 +144,9 @@ export default function RegisterOrphanage() {
 
         <Section title="4. Administrator Details">
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            <FormInput label="Administrator Name *" icon={FiUserCheck} error={formState.errors.administratorName?.message} {...register("administratorName", { required: "Administrator name is required" })} />
+            <FormInput label="Administrator Name *" icon={FiUserCheck} error={errors.administratorName?.message} {...register("administratorName", { required: "Administrator name is required" })} />
             <FormInput label="Designation" icon={FiBriefcase} {...register("designation")} />
-            <FormInput label="Mobile Number *" type="tel" icon={FiPhone} error={formState.errors.mobile?.message} {...register("mobile", { required: "Mobile number is required" })} />
+            <FormInput label="Mobile Number *" type="tel" icon={FiPhone} error={errors.mobile?.message} {...register("mobile", { required: "Mobile number is required" })} />
             <FormInput label="Email" type="email" icon={FiMail} {...register("administratorEmail")} />
             <FormInput label="Profile Photo" type="file" icon={FiUpload} {...register("profilePhoto")} />
           </div>
@@ -250,44 +243,41 @@ export default function RegisterOrphanage() {
         </Section>
 
         <Section title="13. Login Credentials">
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            <div className="md:col-span-2 xl:col-span-2">
-              <FormInput 
-                label="Password *" 
-                type="text" 
-                icon={FiLock} 
-                readOnly 
-                {...register("password", { required: "Password is required" })} 
-              />
-              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                Password will be used as login ID (email) and password for the orphanage account
-              </p>
-            </div>
-            <div className="flex items-end">
-              <Button 
-                type="button"
-                variant="secondary"
-                icon={FiRefreshCw}
-                onClick={generatePassword}
-                disabled={loading}
-              >
-                Generate Password
-              </Button>
-            </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <FormInput 
+              label="Password *" 
+              type="password" 
+              icon={FiLock} 
+              error={errors.password?.message}
+              {...register("password", { 
+                required: "Password is required",
+                minLength: { value: 8, message: "Password must be at least 8 characters" }
+              })} 
+            />
+            <FormInput 
+              label="Confirm Password *" 
+              type="password" 
+              icon={FiLock} 
+              error={errors.confirmPassword?.message}
+              {...register("confirmPassword", { 
+                required: "Please confirm password",
+                validate: (value) => value === watch("password") || "Passwords do not match"
+              })} 
+            />
           </div>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+            These credentials will be assigned to the new Orphanage account for login.
+          </p>
         </Section>
 
-        {success && generatedPassword && (
+        {success && (
           <div className="rounded-lg bg-emerald-50 p-4 dark:bg-emerald-500/10">
-            <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300 mb-2">{success}</p>
-            <div className="text-xs space-y-1">
-              <p className="text-slate-600 dark:text-slate-400">Login Email: <span className="font-medium text-slate-900 dark:text-white">{watch("officialEmail")}</span></p>
-              <p className="text-slate-600 dark:text-slate-400">Generated Password: <span className="font-medium text-slate-900 dark:text-white">{generatedPassword}</span></p>
-              <p className="text-amber-600 dark:text-amber-400 mt-2">Store these credentials safely - they will not be shown again!</p>
-            </div>
+            <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">{success}</p>
+            <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+              Login Email: <span className="font-medium text-slate-900 dark:text-white">{watch("officialEmail")}</span>
+            </p>
           </div>
         )}
-        {success && !generatedPassword && <p className="rounded-lg bg-emerald-50 p-3 text-sm font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">{success}</p>}
         <div className="flex justify-end gap-3">
           <Button 
             type="button" 
@@ -319,13 +309,14 @@ function Section({ title, children }) {
   );
 }
 
-function TextArea({ label, error, icon: Icon, ...props }) {
+const TextArea = forwardRef(function TextArea({ label, error, icon: Icon, ...props }, ref) {
   return (
     <label className="block">
       <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{label}</span>
       <div className="mt-2 flex rounded-lg border border-slate-200 bg-white px-3 py-2 focus-within:ring-2 focus-within:ring-inset focus-within:ring-civic-500 focus-within:ring-offset-0 dark:border-slate-700 dark:bg-slate-950">
         {Icon && <Icon className="mr-2 mt-1 h-4 w-4 text-slate-400" />}
         <textarea
+          ref={ref}
           rows={3}
           className="w-full resize-y border-0 bg-transparent text-sm text-slate-950 outline-none placeholder:text-slate-400 dark:text-white"
           {...props}
@@ -334,18 +325,18 @@ function TextArea({ label, error, icon: Icon, ...props }) {
       {error && <span className="mt-1 block text-xs font-semibold text-red-600">{error}</span>}
     </label>
   );
-}
+});
 
-function Select({ label, icon: Icon, children, ...props }) {
+const Select = forwardRef(function Select({ label, icon: Icon, children, ...props }, ref) {
   return (
     <label className="block">
       <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{label}</span>
       <div className="mt-2 flex items-center rounded-lg border border-slate-200 bg-white px-3 focus-within:ring-2 focus-within:ring-inset focus-within:ring-civic-500 focus-within:ring-offset-0 dark:border-slate-700 dark:bg-slate-950">
         {Icon && <Icon className="mr-2 h-4 w-4 text-slate-400" />}
-        <select className="min-h-11 w-full border-0 bg-transparent text-sm text-slate-950 outline-none dark:text-white" {...props}>
+        <select ref={ref} className="min-h-11 w-full border-0 bg-transparent text-sm text-slate-950 outline-none dark:text-white" {...props}>
           {children}
         </select>
       </div>
     </label>
   );
-}
+});

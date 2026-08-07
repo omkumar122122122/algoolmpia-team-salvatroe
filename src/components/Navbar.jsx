@@ -176,7 +176,7 @@ export default function Navbar({ title, onMenuClick }) {
     fetchUnreadCount();
     const interval = setInterval(fetchUnreadCount, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [user?.role]);
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {

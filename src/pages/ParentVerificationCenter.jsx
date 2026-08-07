@@ -54,29 +54,29 @@ const statusStyles = {
 // Shape mapper: convert backend ParentBasicDto → local component shape
 function mapToLocal(p) {
   return {
-    id:            p.id,
-    name:          p.name ?? "Unknown",
-    dob:           p.dateOfBirth ?? "",
-    gender:        p.gender ?? "",
-    occupation:    p.occupation ?? "",
-    income:        p.annualIncome ? `INR ${Number(p.annualIncome).toLocaleString("en-IN")}` : "Not provided",
+    id: p.id,
+    name: p.name ?? "Unknown",
+    dob: p.dateOfBirth ?? "",
+    gender: p.gender ?? "",
+    occupation: p.occupation ?? "",
+    income: p.annualIncome ? `INR ${Number(p.annualIncome).toLocaleString("en-IN")}` : "Not provided",
     familyMembers: "",
-    phone:         p.phone ?? "",
-    email:         p.email ?? "",
-    address:       "",
+    phone: p.phone ?? "",
+    email: p.email ?? "",
+    address: "",
     emergencyContact: "",
-    registeredAt:  p.registeredAt ? new Date(p.registeredAt).toISOString().slice(0, 10) : "",
-    kycStatus:     p.kycStatus ?? "PENDING",
-    trustScore:    p.trustScore ?? 0,
-    status:        p.verificationStatus === "APPROVED" ? "Verified" : p.verificationStatus === "REJECTED" ? "Rejected" : p.verificationStatus === "UNDER_REVIEW" ? "Under Review" : p.kycStatus === "RE_UPLOAD_REQUIRED" ? "Re-upload Required" : "Pending",
-    issueStatus:   "Open",
-    riskLevel:     (p.trustScore ?? 0) < 50 ? "High" : (p.trustScore ?? 0) < 75 ? "Medium" : "Low",
-    photo:         (p.name ?? "?").split(" ").map(n => n[0]).join("").slice(0, 2),
+    registeredAt: p.registeredAt ? new Date(p.registeredAt).toISOString().slice(0, 10) : "",
+    kycStatus: p.kycStatus ?? "PENDING",
+    trustScore: p.trustScore ?? 0,
+    status: p.verificationStatus === "APPROVED" ? "Verified" : p.verificationStatus === "REJECTED" ? "Rejected" : p.verificationStatus === "UNDER_REVIEW" ? "Under Review" : p.kycStatus === "RE_UPLOAD_REQUIRED" ? "Re-upload Required" : "Pending",
+    issueStatus: "Open",
+    riskLevel: (p.trustScore ?? 0) < 50 ? "High" : (p.trustScore ?? 0) < 75 ? "Medium" : "Low",
+    photo: (p.name ?? "?").split(" ").map(n => n[0]).join("").slice(0, 2),
     recommendation: "",
-    documents:     p.documents || [],
-    ai:            { faceMatch: "N/A", ocrMatch: "N/A", identityMatch: "N/A", documentAuthenticity: "N/A", duplicateAccount: "N/A", backgroundCheck: "N/A", blacklistCheck: "N/A", phone: "N/A", email: "N/A" },
-    issues:        [],
-    _backendId:    p.id,
+    documents: p.documents || [],
+    ai: { faceMatch: "N/A", ocrMatch: "N/A", identityMatch: "N/A", documentAuthenticity: "N/A", duplicateAccount: "N/A", backgroundCheck: "N/A", blacklistCheck: "N/A", phone: "N/A", email: "N/A" },
+    issues: [],
+    _backendId: p.id,
   };
 }
 
@@ -101,9 +101,9 @@ export default function ParentVerificationCenter() {
   async function loadVerificationQueue() {
     setApiLoading(true);
     try {
-      const result = await parentsService.getVerificationQueue({ 
-        page: pagination.page, 
-        limit: pagination.limit 
+      const result = await parentsService.getVerificationQueue({
+        page: pagination.page,
+        limit: pagination.limit
       });
       const items = result?.data ?? [];
       const mapped = items.map(mapToLocal);
@@ -129,9 +129,9 @@ export default function ParentVerificationCenter() {
   const stats = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10);
     return {
-      Pending: parents.filter((parent) => parent.status === "Pending" || parent.status === "Under Review").length,
-      Verified: parents.filter((parent) => parent.status === "Verified" || parent.status === "Approved").length,
-      Rejected: parents.filter((parent) => parent.status === "Rejected").length,
+      Pending: parents.filter((parent) => parent.status === "Pending" || parent.status === "Under Review" || parent.verificationStatus === "UNDER_REVIEW" || parent.verificationStatus === "PENDING" || parent.kycStatus === "SUBMITTED" || parent.kycStatus === "UNDER_REVIEW").length,
+      Verified: parents.filter((parent) => parent.status === "Verified" || parent.status === "Approved" || parent.verificationStatus === "APPROVED" || parent.kycStatus === "APPROVED").length,
+      Rejected: parents.filter((parent) => parent.status === "Rejected" || parent.verificationStatus === "REJECTED" || parent.kycStatus === "REJECTED").length,
       "High Risk": parents.filter((parent) => parent.riskLevel === "High").length,
       "Open Issues": parents.reduce((total, parent) => total + (parent.issues?.filter((issue) => issue.status !== "Closed" && issue.status !== "Resolved").length || 0), 0),
       Today: parents.filter((parent) => parent.registeredAt === today).length
@@ -142,7 +142,13 @@ export default function ParentVerificationCenter() {
     const term = search.trim().toLowerCase();
     const result = parents.filter((parent) => {
       const matchesTerm = [parent.name, parent.id, parent.email, parent.phone].some((value) => value.toLowerCase().includes(term));
-      const matchesFilter = filter === "All" || parent.status === filter || (filter === "High Risk" && parent.riskLevel === "High");
+      const matchesFilter = filter === "All"
+        || parent.status === filter
+        || (filter === "Verified" && (parent.status === "Verified" || parent.kycStatus === "APPROVED" || parent.verificationStatus === "APPROVED"))
+        || (filter === "Rejected" && (parent.status === "Rejected" || parent.kycStatus === "REJECTED" || parent.verificationStatus === "REJECTED"))
+        || (filter === "Pending" && (parent.status === "Pending" || parent.status === "Under Review" || parent.verificationStatus === "UNDER_REVIEW" || parent.verificationStatus === "PENDING" || parent.kycStatus === "SUBMITTED" || parent.kycStatus === "UNDER_REVIEW"))
+        || (filter === "Under Review" && (parent.status === "Under Review" || parent.verificationStatus === "UNDER_REVIEW" || parent.kycStatus === "SUBMITTED" || parent.kycStatus === "UNDER_REVIEW"))
+        || (filter === "High Risk" && parent.riskLevel === "High");
       return matchesTerm && matchesFilter;
     });
 
@@ -297,9 +303,9 @@ export default function ParentVerificationCenter() {
 function PageHeader({ stats }) {
   const headerStats = [
     ["Today's Registrations", stats.Today],
-    ["Pending Verification",  stats.Pending],
-    ["Approved",              stats.Verified],
-    ["Rejected",              stats.Rejected],
+    ["Pending Verification", stats.Pending],
+    ["Approved", stats.Verified],
+    ["Rejected", stats.Rejected],
   ];
 
   return (
@@ -538,7 +544,7 @@ function DetailModal({ parent, onClose, onAction, onPreviewDoc, notify }) {
                   <MetricCard label="Verified By" value={parent.verifiedBy || (parent.status === "Verified" ? "Administrator" : "Pending Review")} />
                   <MetricCard label="Documents Submitted" value={`${parent.documents?.length || 0} Documents`} />
                 </div>
-                
+
                 {/* Document Cards with PDF & Image Preview support */}
                 {parent.documents && parent.documents.length > 0 ? (
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 pt-2">
@@ -776,8 +782,8 @@ function SidebarPanel({ title, items, icon: Icon, alert = false }) {
       <div className="space-y-2 p-4">
         {items.length
           ? items.map((item) => (
-              <p key={item} className="rounded-lg bg-slate-50 px-3 py-2.5 text-xs font-medium leading-snug text-slate-600 dark:bg-slate-800 dark:text-slate-300">{item}</p>
-            ))
+            <p key={item} className="rounded-lg bg-slate-50 px-3 py-2.5 text-xs font-medium leading-snug text-slate-600 dark:bg-slate-800 dark:text-slate-300">{item}</p>
+          ))
           : <p className="py-2 text-xs text-slate-400 dark:text-slate-500">No records</p>
         }
       </div>

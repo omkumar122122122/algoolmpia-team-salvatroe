@@ -3,6 +3,7 @@ import DashboardLayout from "./DashboardLayout.jsx";
 
 const parentNav = [
   { label: "Dashboard", path: "/parent", icon: FiActivity },
+  { label: "Post Adoption Monitoring", path: "/parent/post-adoption-monitoring", icon: FiHeart },
   { label: "Sahayak AI", path: "/parent/sahayak-ai", icon: FiMessageCircle },
   { label: "KYC Verification", path: "/parent/kyc", icon: FiShield },
   { label: "Profile", path: "/parent/profile", icon: FiUser },

@@ -17,6 +17,7 @@ import OrphanageDetail      from "../pages/OrphanageDetail.jsx";
 import OrphanageFullProfile from "../pages/OrphanageFullProfile.jsx";
 import Orphanages           from "../pages/Orphanages.jsx";
 import ParentDashboard      from "../pages/ParentDashboard.jsx";
+import PostAdoptionMonitoring from "../pages/PostAdoptionMonitoring.jsx";
 import ParentKYC            from "../pages/ParentKYC.jsx";
 import ParentProfile        from "../pages/ParentProfile.jsx";
 import ParentVerificationCenter from "../pages/ParentVerificationCenter.jsx";
@@ -30,6 +31,13 @@ import SystemSettings       from "../pages/SystemSettings.jsx";
 import ChildWelfareFollowUpSession from "../pages/ChildWelfareFollowUpSession.jsx";
 import VisitRequest         from "../pages/VisitRequest.jsx";
 import SahayakAI            from "../pages/SahayakAI.jsx";
+import DonorLayout        from "../layouts/DonorLayout.jsx";
+import DonorLogin         from "../pages/DonorLogin.jsx";
+import DonorRegister      from "../pages/DonorRegister.jsx";
+import DonorDashboard     from "../pages/DonorDashboard.jsx";
+import DonorRequests      from "../pages/DonorRequests.jsx";
+import MyDonations        from "../pages/MyDonations.jsx";
+import OrphanageDonationRequests from "../pages/OrphanageDonationRequests.jsx";
 import ProtectedRoute       from "./ProtectedRoute.jsx";
 
 export default function AppRoutes() {
@@ -38,6 +46,10 @@ export default function AppRoutes() {
       {/* Default → login */}
       <Route path="/"      element={<Navigate to="/login" replace />} />
       <Route path="/login" element={<Login />} />
+
+      {/* ── Donor Auth Public Routes ─────────────────────── */}
+      <Route path="/donor/login"    element={<DonorLogin />} />
+      <Route path="/donor/register" element={<DonorRegister />} />
 
       {/* ── Admin ─────────────────────────────────────────── */}
       <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
@@ -72,6 +84,7 @@ export default function AppRoutes() {
           <Route path="visit-request" element={<VisitRequest />} />
           <Route path="sahayak-ai"    element={<SahayakAI />} />
           <Route path="notifications" element={<Alerts />} />
+          <Route path="post-adoption-monitoring" element={<PostAdoptionMonitoring />} />
           <Route path="child-welfare-follow-up-session" element={<ChildWelfareFollowUpSession />} />
         </Route>
       </Route>
@@ -93,6 +106,18 @@ export default function AppRoutes() {
           <Route path="staff/:staffId"                  element={<StaffProfile />} />
           <Route path="reports"                         element={<Reports />} />
           <Route path="profile"                         element={<Profile />} />
+          <Route path="donation-requests"               element={<OrphanageDonationRequests />} />
+        </Route>
+      </Route>
+
+      {/* ── Donor Protected Portal ─────────────────────────── */}
+      <Route element={<ProtectedRoute allowedRoles={["donor"]} />}>
+        <Route path="/donor" element={<DonorLayout />}>
+          <Route index element={<DonorDashboard />} />
+          <Route path="donations" element={<MyDonations />} />
+          <Route path="requests"  element={<MyDonations />} />
+          <Route path="causes"    element={<DonorDashboard />} />
+          <Route path="profile"   element={<Profile />} />
         </Route>
       </Route>
 

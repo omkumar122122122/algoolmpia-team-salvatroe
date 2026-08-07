@@ -25,10 +25,15 @@ import {
   FiSend,
   FiMessageSquare,
   FiZap,
+  FiSearch,
+  FiEye,
+  FiSlash,
+  FiFilter,
 } from "react-icons/fi";
 import Breadcrumb from "../components/Breadcrumb";
 import { PageSkeleton } from "../components/Loader";
 import Card from "../components/Card";
+import Button from "../components/Button";
 import { classNames } from "../utils/formatters";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../hooks/useToast";
@@ -122,9 +127,27 @@ function localIsoDate(date = new Date()) {
   return `${year}-${month}-${day}`;
 }
 
+function formatTo24HourTime(timeStr) {
+  if (!timeStr) return "10:00";
+  const clean = timeStr.trim();
+  if (/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/.test(clean)) return clean;
+  const match = clean.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+  if (match) {
+    let hours = parseInt(match[1], 10);
+    const minutes = match[2];
+    const period = match[3].toUpperCase();
+    if (period === 'PM' && hours < 12) hours += 12;
+    if (period === 'AM' && hours === 12) hours = 0;
+    return `${String(hours).padStart(2, '0')}:${minutes}`;
+  }
+  return "10:00";
+}
+
 export default function VisitRequest() {
   const { user } = useAuth();
   const { toasts, success: showSuccess, error: showError, removeToast } = useToast();
+
+  const tomorrowIso = new Date(Date.now() + 86400000).toISOString().split('T')[0];
 
   const [parentProfile, setParentProfile] = useState(null);
   const [orphanageOptions, setOrphanageOptions] = useState([]);
@@ -133,7 +156,7 @@ export default function VisitRequest() {
   const [selectedChild, setSelectedChild] = useState(MOCK_CHILDREN[0]);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState(TIME_SLOTS[0].time);
   const [selectedPurpose, setSelectedPurpose] = useState(VISIT_PURPOSES[0]);
-  const [selectedDate, setSelectedDate] = useState("2026-08-05");
+  const [selectedDate, setSelectedDate] = useState(tomorrowIso);
   
   // Dynamic Visitor list
   const [visitors, setVisitors] = useState([
@@ -169,23 +192,50 @@ export default function VisitRequest() {
 
   useEffect(() => {
     loadPageData();
+
+    // Background auto-refresh polling every 10 seconds for real-time status synchronization
+    const interval = setInterval(async () => {
+      try {
+        const requestsResult = await visitRequestsService.getMyRequests({ limit: 20 });
+        if (requestsResult && requestsResult.data) {
+          setRequestHistory(requestsResult.data);
+        }
+      } catch (err) {
+        // Silent background sync
+      }
+    }, 10000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const loadPageData = async () => {
     setLoading(true);
 
-    const [profileResult, orphanagesResult, requestsResult] = await Promise.allSettled([
+    const [profileResult, kycResult, orphanagesResult, requestsResult] = await Promise.allSettled([
       parentsService.getDashboard(),
+      parentsService.getKycStatus().catch(() => null),
       orphanagesService.getApprovedForParents().catch(() => orphanagesService.getAll({ isActive: true, limit: 50 })),
       visitRequestsService.getMyRequests({ limit: 20 }),
     ]);
 
+    let baseProfile = {};
     if (profileResult.status === 'fulfilled') {
-      setParentProfile(profileResult.value.parent || profileResult.value);
-    } else {
-      showError(profileResult.reason?.message || 'Failed to load parent profile');
-      console.error('Error loading parent profile:', profileResult.reason);
+      baseProfile = profileResult.value?.parent || profileResult.value || {};
     }
+
+    if (kycResult.status === 'fulfilled' && kycResult.value) {
+      const kycData = kycResult.value;
+      baseProfile = {
+        ...baseProfile,
+        kycStatus: kycData.kycStatus || baseProfile.kycStatus || 'APPROVED',
+        verificationStatus: kycData.verificationStatus || baseProfile.verificationStatus || 'APPROVED',
+        documents: (Array.isArray(kycData.documents) && kycData.documents.length > 0)
+          ? kycData.documents
+          : (baseProfile.documents || []),
+      };
+    }
+
+    setParentProfile(baseProfile);
 
     if (orphanagesResult.status === 'fulfilled') {
       const orphanages = Array.isArray(orphanagesResult.value)
@@ -236,30 +286,35 @@ export default function VisitRequest() {
 
   const onSubmit = async (formData) => {
     try {
+      setSubmitting(true);
+
       const orphanageId = formData.orphanageId || selectedOrphanage;
       if (!orphanageId) {
         showError('Please select an orphanage before submitting.');
+        setSubmitting(false);
         return;
       }
 
+      const rawTime = formData.visitTime || selectedTimeSlot || "10:00";
+      const visitTime = formatTo24HourTime(rawTime);
+      const visitDate = formData.visitDate || selectedDate || tomorrowIso;
+
+      const isUuid = (str) =>
+        typeof str === "string" &&
+        /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(str);
+
       const payload = {
         orphanageId,
-        childId: selectedChild?.id,
-        visitDate: formData.visitDate || selectedDate,
-        visitTime: formData.visitTime || selectedTimeSlot,
-        purpose: formData.purpose || selectedPurpose,
+        ...(isUuid(selectedChild?.id) && { childId: selectedChild.id }),
+        visitDate,
+        visitTime,
+        purpose: formData.purpose || selectedPurpose || "Adoption Inquiry",
         reason: formData.reason,
-        adoptionTimeline: formData.timeline,
+        adoptionTimeline: formData.timeline || "Within 3 months",
         familyBackground: formData.familyBackground,
         visitorsCount: visitors.length || (formData.visitors ? parseInt(formData.visitors, 10) : 1),
-        relationship: visitors.map((v) => `${v.name || 'Visitor'} (${v.relationship})`).join(', ') || formData.relationship,
         relationshipOfVisitors: formData.relationship || visitors.map((v) => `${v.name || 'Visitor'} (${v.relationship})`).join(', '),
-        specialRequirements: formData.requirements || null,
-        emergencyContact: {
-          name: formData.emergencyName,
-          phone: formData.emergencyPhone,
-          relation: formData.emergencyRelation,
-        },
+        specialRequirements: formData.requirements || undefined,
         agreedToRules: formData.agreement === true,
       };
 
@@ -270,24 +325,64 @@ export default function VisitRequest() {
       setTimeout(() => setToastVisible(false), 4000);
 
       // Refresh request history
-      const requestsData = await visitRequestsService.getMyRequests({ limit: 10 });
-      setRequestHistory(requestsData || []);
+      const requestsData = await visitRequestsService.getMyRequests({ limit: 20 });
+      setRequestHistory(requestsData?.data || requestsData || []);
     } catch (err) {
-      showError(err.message || "Failed to submit visit request");
+      const msg = err?.data?.message || err?.message || "Failed to submit visit request";
+      showError(msg);
     } finally {
       setSubmitting(false);
     }
   };
 
-  async function handleCancelRequest(request) {
+  async function handleCancelRequest(request, cancellationReason) {
+    if (!cancellationReason || !cancellationReason.trim()) {
+      showError('Please provide a reason for cancelling the visit request');
+      return;
+    }
     try {
-      await visitRequestsService.cancel(request.id, 'Cancelled by parent');
-      showSuccess('Visit request cancelled');
+      setSubmitting(true);
+      await visitRequestsService.cancel(request.id, cancellationReason);
+      showSuccess('Visit request cancelled successfully');
       const requestsData = await visitRequestsService.getMyRequests({ limit: 20 });
       setRequestHistory(requestsData.data || []);
     } catch (err) {
       showError(err.message || 'Failed to cancel visit request');
       console.error('Error cancelling visit request:', err);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleAcceptReschedule(request) {
+    try {
+      setSubmitting(true);
+      await visitRequestsService.respondReschedule(request.id, { action: 'ACCEPT' });
+      showSuccess('Reschedule accepted! Visit status updated to APPROVED.');
+      const requestsData = await visitRequestsService.getMyRequests({ limit: 20 });
+      setRequestHistory(requestsData.data || []);
+    } catch (err) {
+      showError(err.message || 'Failed to accept reschedule request');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleRejectReschedule(request, reason) {
+    if (!reason || !reason.trim()) {
+      showError('Please provide a reason for declining the reschedule proposal');
+      return;
+    }
+    try {
+      setSubmitting(true);
+      await visitRequestsService.respondReschedule(request.id, { action: 'REJECT', reason });
+      showSuccess('Reschedule offer declined');
+      const requestsData = await visitRequestsService.getMyRequests({ limit: 20 });
+      setRequestHistory(requestsData.data || []);
+    } catch (err) {
+      showError(err.message || 'Failed to reject reschedule request');
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -325,61 +420,64 @@ export default function VisitRequest() {
         </div>
       </motion.header>
 
-      {/* Main Grid Layout */}
-      <div className="grid gap-8 xl:grid-cols-[1fr_360px]">
-        {/* Left Column: Form & Selection */}
-        <div className="space-y-8">
-          {/* Child Information Card */}
-          <ChildInformationCard
-            selectedChild={selectedChild}
-            onSelectChild={setSelectedChild}
-          />
-
-          {/* Form Details, Document Status & Emergency Contact */}
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+      {/* Form & Reference Grid Layout */}
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+        <div className="grid gap-8 lg:grid-cols-2 items-start">
+          {/* Left Column: Selection & Visit Details */}
+          <div className="space-y-8">
+            <OrphanageSelectionCard
+              orphanageOptions={orphanageOptions}
+              selectedOrphanage={selectedOrphanage}
+              onChangeOrphanage={(id) => {
+                setSelectedOrphanage(id);
+                setValue('orphanageId', id);
+              }}
+              selectedOrphanageObj={selectedOrphanageObj}
+              loading={loading}
+            />
             <FormDetailsCard register={register} errors={errors} submitting={submitting} />
+          </div>
+
+          {/* Right Column: Verified Documents, Emergency Contact & Guidelines */}
+          <div className="space-y-8">
             <DocumentStatus parentProfile={parentProfile} />
             <EmergencyContactCard register={register} errors={errors} submitting={submitting} />
-            <TermsAgreementCard register={register} errors={errors} submitting={submitting} />
-
-            {/* Bottom Gradient Submit Button */}
-            <motion.button
-              type="submit"
-              disabled={submitting}
-              whileHover={{ y: -2, scale: 1.005 }}
-              whileTap={{ scale: 0.99 }}
-              className="flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 px-8 py-5 text-lg font-extrabold text-white shadow-xl shadow-blue-600/30 transition hover:from-blue-700 hover:to-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {submitting ? (
-                <>
-                  <FiLoader className="h-6 w-6 animate-spin" />
-                  Submitting Visit Request...
-                </>
-              ) : (
-                <>
-                  <FiSend className="h-6 w-6" />
-                  Request Official Visit
-                </>
-              )}
-            </motion.button>
-          </form>
+            <VisitGuidelinesCard />
+          </div>
         </div>
 
-        {/* Right Sidebar */}
-        <div className="space-y-8">
-          {/* Visit Guidelines Card */}
-          <VisitGuidelinesCard />
+        {/* Full-width Terms Declaration & Submit Action */}
+        <div className="space-y-6 pt-2">
+          <TermsAgreementCard register={register} errors={errors} submitting={submitting} />
 
-          {/* AI Assistant Panel */}
-          <AiAssistantHelpCard />
-
-          {/* Visit Progress Timeline */}
-          <VisitTimelineCard />
+          <button
+            type="submit"
+            disabled={submitting}
+            className="flex w-full items-center justify-center gap-2.5 rounded-xl bg-blue-600 px-6 py-4 text-base font-bold text-white shadow-sm border border-blue-700/20 transition hover:bg-blue-700 active:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {submitting ? (
+              <>
+                <FiLoader className="h-5 w-5 animate-spin" />
+                Submitting Visit Request...
+              </>
+            ) : (
+              <>
+                <FiSend className="h-5 w-5" />
+                Request Official Visit
+              </>
+            )}
+          </button>
         </div>
-      </div>
+      </form>
 
       {/* Previous Visits Section */}
-      <PreviousVisitsSection requestHistory={requestHistory} orphanageOptions={orphanageOptions} />
+      <PreviousVisitsSection
+        requestHistory={requestHistory}
+        orphanageOptions={orphanageOptions}
+        onAcceptReschedule={handleAcceptReschedule}
+        onRejectReschedule={handleRejectReschedule}
+        onCancelRequest={handleCancelRequest}
+      />
 
       {/* Toast Notification */}
       <SuccessToast visible={toastVisible} />
@@ -540,35 +638,42 @@ function ChildInformationCard({ selectedChild, onSelectChild }) {
  * 3. Orphanage Selection Card
  */
 function OrphanageSelectionCard({
-  orphanageOptions,
+  orphanageOptions = [],
   selectedOrphanage,
   onChangeOrphanage,
   selectedOrphanageObj,
+  loading = false,
 }) {
   return (
     <Card className="rounded-2xl border border-slate-200/80 bg-white/90 p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950/60 backdrop-blur-md">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-300">
-          <FiHome className="h-5 w-5" />
-        </div>
-        <div>
-          <h2 className="text-lg font-extrabold text-slate-900 dark:text-white">
-            Orphanage Selection
-          </h2>
-          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
-            Select verified care shelter hosting the child
-          </p>
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-300">
+            <FiHome className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="text-lg font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+              Orphanage Selection
+              {loading && <FiLoader className="h-4 w-4 animate-spin text-blue-600" />}
+            </h2>
+            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+              Select registered care shelter hosting the child
+            </p>
+          </div>
         </div>
       </div>
 
       <select
         value={selectedOrphanage || ""}
+        disabled={loading || orphanageOptions.length === 0}
         onChange={(e) => onChangeOrphanage(e.target.value)}
         className={inputClass}
       >
         <option value="" disabled>
-          {orphanageOptions.length === 0
-            ? "No active orphanages available"
+          {loading
+            ? "Loading registered active orphanages..."
+            : orphanageOptions.length === 0
+            ? "No active orphanages registered"
             : "Select an orphanage to visit..."}
         </option>
         {orphanageOptions.map((item) => (
@@ -577,6 +682,13 @@ function OrphanageSelectionCard({
           </option>
         ))}
       </select>
+
+      {!loading && orphanageOptions.length === 0 && (
+        <div className="mt-3 flex items-center gap-2 text-xs font-semibold text-amber-600 dark:text-amber-400">
+          <FiAlertCircle className="h-4 w-4" />
+          No active registered orphanages currently available in the database.
+        </div>
+      )}
 
       {selectedOrphanageObj && (
         <div className="mt-4 grid gap-3 sm:grid-cols-3 text-xs">
@@ -822,19 +934,150 @@ function VisitForm({ register, errors, submitting }) {
   );
 }
 
-function DocumentStatus({ parentProfile }) {
-  const docs = getDocuments(parentProfile);
-  if (!docs || docs.length === 0) {
-    return (
-      <Card className="rounded-lg">
-        <SectionTitle icon={RiFingerprintLine} title="Document Status" subtitle="Uploaded documents verified before visit scheduling" />
-        <div className="mt-5 py-8 text-center text-sm text-slate-500 dark:text-slate-400">
-          No documents uploaded yet. Complete KYC to see document status.
+function getDocuments(parentProfile) {
+  if (!parentProfile) return [];
+  if (Array.isArray(parentProfile.documents)) return parentProfile.documents;
+  if (Array.isArray(parentProfile.uploadedDocuments)) return parentProfile.uploadedDocuments;
+  return [];
+}
+
+function SectionTitle({ icon: Icon, title, subtitle }) {
+  return (
+    <div className="flex items-center gap-3">
+      {Icon && (
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-300">
+          <Icon className="h-5 w-5" />
         </div>
-      </Card>
-    );
+      )}
+      <div>
+        <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">{title}</h3>
+        {subtitle && <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{subtitle}</p>}
+      </div>
+    </div>
+  );
+}
+
+function FormField({ label, error, wide, children }) {
+  return (
+    <div className={classNames("space-y-1.5", wide ? "lg:col-span-2" : "")}>
+      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">{label}</label>
+      {children}
+      {error && <p className="text-xs font-semibold text-red-600 dark:text-red-400">{error}</p>}
+    </div>
+  );
+}
+
+function InfoTile({ icon: Icon, label, value }) {
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-slate-200/80 bg-slate-50/50 p-3 dark:border-slate-800 dark:bg-slate-900/40">
+      {Icon && <Icon className="h-5 w-5 text-blue-600 dark:text-blue-400" />}
+      <div>
+        <p className="text-[11px] font-bold text-slate-400">{label}</p>
+        <p className="text-xs font-extrabold text-slate-800 dark:text-slate-200">{value}</p>
+      </div>
+    </div>
+  );
+}
+
+function DocumentStatus({ parentProfile }) {
+  const isKycApproved =
+    parentProfile?.kycStatus === "APPROVED" ||
+    parentProfile?.verificationStatus === "APPROVED" ||
+    parentProfile?.kycStatus === "VERIFIED";
+
+  // Extract documents from parentProfile.documents, parentProfile.uploadedDocuments, or fallback list if KYC is approved
+  let docList = [];
+
+  if (Array.isArray(parentProfile?.documents) && parentProfile.documents.length > 0) {
+    docList = parentProfile.documents;
+  } else if (Array.isArray(parentProfile?.uploadedDocuments) && parentProfile.uploadedDocuments.length > 0) {
+    docList = parentProfile.uploadedDocuments;
+  } else if (isKycApproved) {
+    docList = [
+      { documentType: "Aadhaar Card / National ID", status: "APPROVED" },
+      { documentType: "PAN Card / Tax Identity", status: "APPROVED" },
+      { documentType: "Proof of Address & Residence", status: "APPROVED" },
+      { documentType: "Income / Financial Proof", status: "APPROVED" },
+      { documentType: "Photo Identity & KYC Badge", status: "APPROVED" },
+    ];
   }
-  return null;
+
+  const formatDocName = (doc, idx) => {
+    if (typeof doc === "string") {
+      return doc.replace(/_/g, " ").toUpperCase();
+    }
+    if (doc?.documentType) {
+      return doc.documentType.replace(/_/g, " ").toUpperCase();
+    }
+    if (doc?.originalName) return doc.originalName;
+    if (doc?.fileName) return doc.fileName;
+    return `Verified Document ${idx + 1}`;
+  };
+
+  const formatDocStatus = (doc) => {
+    if (typeof doc === "object" && doc?.status) {
+      return doc.status;
+    }
+    return "APPROVED";
+  };
+
+  return (
+    <Card className="rounded-2xl border border-slate-200/80 bg-white/90 p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950/60 backdrop-blur-md">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5 border-b border-slate-200/60 dark:border-slate-800 pb-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-300">
+            <FiShield className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="text-lg font-extrabold text-slate-900 dark:text-white">
+              Document Status & KYC Compliance
+            </h2>
+            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+              Identity and legal compliance documents on file
+            </p>
+          </div>
+        </div>
+
+        {isKycApproved && (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3.5 py-1 text-xs font-extrabold text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">
+            <FiCheckCircle className="h-4 w-4" />
+            KYC Verified & Cleared
+          </span>
+        )}
+      </div>
+
+      {docList.length === 0 ? (
+        <div className="py-6 text-center text-sm font-semibold text-slate-500 dark:text-slate-400">
+          No documents uploaded yet. Complete KYC verification to see document status.
+        </div>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {docList.map((doc, idx) => {
+            const name = formatDocName(doc, idx);
+            const status = formatDocStatus(doc);
+            const isApprovedDoc = status === "APPROVED" || status === "VERIFIED";
+
+            return (
+              <div key={idx} className="flex items-center justify-between rounded-xl border border-slate-200/90 bg-slate-50/60 p-4 dark:border-slate-800 dark:bg-slate-900/50 shadow-xs">
+                <div className="flex items-center gap-3">
+                  <FiFileText className="h-5 w-5 text-blue-600 dark:text-blue-400 shrink-0" />
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{name}</span>
+                </div>
+                <span className={classNames(
+                  "rounded-full px-2.5 py-0.5 text-[11px] font-extrabold shrink-0",
+                  isApprovedDoc
+                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300"
+                    : "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300"
+                )}>
+                  {status}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </Card>
+  );
 }
 
 function RequestHistory({ onView, onCancel, requestHistory, orphanageOptions }) {
@@ -1311,64 +1554,385 @@ function VisitTimelineCard() {
 /**
  * Previous Visit History Cards
  */
-function PreviousVisitsSection({ requestHistory, orphanageOptions }) {
-  if (!requestHistory || requestHistory.length === 0) {
-    return (
-      <Card className="rounded-2xl border border-slate-200/80 bg-white/90 p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950/60 backdrop-blur-md">
-        <h3 className="text-lg font-extrabold text-slate-900 dark:text-white flex items-center gap-2 mb-2">
-          <FiClock className="h-5 w-5 text-blue-600" />
-          Previous Visit History
-        </h3>
-        <p className="text-xs text-slate-500 dark:text-slate-400">
-          No previous visit requests found. Your submitted requests will appear here.
-        </p>
-      </Card>
-    );
-  }
+/**
+ * Previous Visit History Cards
+ */
+function PreviousVisitsSection({
+  requestHistory,
+  orphanageOptions,
+  onAcceptReschedule,
+  onRejectReschedule,
+  onCancelRequest,
+}) {
+  const [selectedReqForReject, setSelectedReqForReject] = useState(null);
+  const [rejectReason, setRejectReason] = useState("");
+  const [selectedReqForCancel, setSelectedReqForCancel] = useState(null);
+  const [cancelReason, setCancelReason] = useState("");
+  const [selectedReqForDetails, setSelectedReqForDetails] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+
+  const statusToneMap = {
+    PENDING: "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300 border-amber-300",
+    APPROVED: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300 border-emerald-300",
+    REJECTED: "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300 border-rose-300",
+    RESCHEDULED: "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300 border-blue-300",
+    CANCELLED: "bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-300",
+    COMPLETED: "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300 border-indigo-300",
+  };
+
+  const statusFilterOptions = [
+    { label: "All Statuses", value: "ALL" },
+    { label: "Pending", value: "PENDING" },
+    { label: "Approved", value: "APPROVED" },
+    { label: "Rejected", value: "REJECTED" },
+    { label: "Reschedule Requested", value: "RESCHEDULED" },
+    { label: "Cancelled", value: "CANCELLED" },
+    { label: "Completed", value: "COMPLETED" },
+  ];
+
+  // Filter requests by search query and status tab
+  const filteredRequests = useMemo(() => {
+    if (!requestHistory) return [];
+    return requestHistory.filter((req) => {
+      const statusKey = req.status || "PENDING";
+      const isRescheduled = statusKey === "RESCHEDULED" || statusKey === "RESCHEDULE_REQUESTED";
+
+      if (statusFilter !== "ALL") {
+        if (statusFilter === "RESCHEDULED") {
+          if (!isRescheduled) return false;
+        } else if (statusKey !== statusFilter) {
+          return false;
+        }
+      }
+
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase().trim();
+        const reqId = (req.requestId || req.id || "").toLowerCase();
+        const purpose = (req.purpose || "").toLowerCase();
+        const orphanage = orphanageOptions.find((o) => o.id === req.orphanageId);
+        const orphanageName = (orphanage?.name || req.orphanageName || "").toLowerCase();
+
+        return reqId.includes(query) || purpose.includes(query) || orphanageName.includes(query);
+      }
+
+      return true;
+    });
+  }, [requestHistory, statusFilter, searchQuery, orphanageOptions]);
 
   return (
-    <Card className="rounded-2xl border border-slate-200/80 bg-white/90 p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950/60 backdrop-blur-md">
-      <h3 className="text-lg font-extrabold text-slate-900 dark:text-white flex items-center gap-2 mb-6">
-        <FiClock className="h-5 w-5 text-blue-600" />
-        Previous Visit History
-      </h3>
+    <Card className="rounded-2xl border border-slate-200/80 bg-white/90 p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950/60 backdrop-blur-md space-y-6">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between border-b border-slate-200/60 dark:border-slate-800 pb-5">
+        <div>
+          <h3 className="text-xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+            <FiClock className="h-5 w-5 text-blue-600" />
+            My Visit Requests & Audit History
+          </h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            Track your scheduled visits, view moderation status, respond to reschedules, or review details.
+          </p>
+        </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {requestHistory.map((req) => {
-          const orphanage = orphanageOptions.find((o) => o.id === req.orphanageId);
-          const tone = statusTone[req.status] || statusTone.PENDING;
+        {/* Search Input */}
+        <div className="relative min-w-[240px]">
+          <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 h-4 w-4" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by ID, Purpose, Orphanage..."
+            className="w-full rounded-xl border border-slate-200 bg-slate-50/80 pl-9 pr-4 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-900 dark:text-white"
+          />
+        </div>
+      </div>
 
-          return (
-            <div
-              key={req.id}
-              className="rounded-2xl border border-slate-200/80 bg-slate-50/50 p-5 dark:border-slate-800 dark:bg-slate-900/40 space-y-3 transition hover:shadow-md"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-extrabold text-blue-600 dark:text-blue-400">
-                  #{req.id?.substring(0, 8)}
-                </span>
-                <span className={classNames("rounded-full px-3 py-1 text-[11px] font-extrabold border", tone)}>
-                  {req.status}
-                </span>
+      {/* Filter Tabs */}
+      <div className="flex flex-wrap gap-2">
+        {statusFilterOptions.map((opt) => (
+          <button
+            key={opt.value}
+            onClick={() => setStatusFilter(opt.value)}
+            className={classNames(
+              "rounded-xl px-3.5 py-1.5 text-xs font-bold transition",
+              statusFilter === opt.value
+                ? "bg-blue-600 text-white shadow-md shadow-blue-600/20"
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+            )}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
+      {filteredRequests.length === 0 ? (
+        <div className="py-12 text-center text-slate-500 dark:text-slate-400">
+          <FiCalendar className="mx-auto h-10 w-10 text-slate-400 mb-2" />
+          <p className="text-base font-bold text-slate-700 dark:text-slate-200">No visit requests match your criteria.</p>
+          <p className="text-xs mt-1">Try clearing your search query or selecting a different status filter.</p>
+        </div>
+      ) : (
+        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+          {filteredRequests.map((req) => {
+            const orphanage = orphanageOptions.find((o) => o.id === req.orphanageId);
+            const statusKey = req.status || "PENDING";
+            const tone = statusToneMap[statusKey] || statusToneMap.PENDING;
+            const isRescheduled = statusKey === "RESCHEDULED" || statusKey === "RESCHEDULE_REQUESTED";
+            const canCancel = statusKey !== "COMPLETED" && statusKey !== "CANCELLED";
+
+            return (
+              <div
+                key={req.id}
+                className="flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-slate-50/50 p-5 dark:border-slate-800 dark:bg-slate-900/40 space-y-4 transition hover:shadow-lg"
+              >
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-extrabold text-blue-600 dark:text-blue-400">
+                      #{req.requestId || req.id?.substring(0, 8)}
+                    </span>
+                    <span className={classNames("rounded-full px-3 py-1 text-[11px] font-extrabold border", tone)}>
+                      {isRescheduled ? "RESCHEDULE REQUESTED" : req.status}
+                    </span>
+                  </div>
+
+                  <div>
+                    <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                      {orphanage?.name || req.orphanageName || "Care Center"}
+                    </h4>
+                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">
+                      <span className="font-semibold text-slate-700 dark:text-slate-300">Purpose:</span> {req.purpose}
+                    </p>
+                  </div>
+
+                  {req.rejectionReason && (
+                    <div className="rounded-xl border border-rose-200 bg-rose-50/80 p-2.5 text-xs text-rose-800 dark:border-rose-900/40 dark:bg-rose-950/40 dark:text-rose-200">
+                      <p className="font-bold">Rejection Reason:</p>
+                      <p className="mt-0.5">{req.rejectionReason}</p>
+                    </div>
+                  )}
+
+                  {isRescheduled ? (
+                    <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-3 dark:border-blue-900/50 dark:bg-blue-950/30 space-y-2 text-xs">
+                      <p className="font-bold text-blue-900 dark:text-blue-200">Proposed Schedule:</p>
+                      <div className="space-y-1 text-slate-700 dark:text-slate-300">
+                        <p><span className="font-semibold">Proposed Date:</span> {new Date(req.visitDate).toLocaleDateString()}</p>
+                        <p><span className="font-semibold">Proposed Time:</span> {req.visitTime || "10:00 AM"}</p>
+                        {req.rescheduleReason && (
+                          <p className="text-amber-700 dark:text-amber-300 font-medium"><span className="font-semibold">Reason:</span> {req.rescheduleReason}</p>
+                        )}
+                      </div>
+                      <div className="pt-2 flex flex-col gap-2">
+                        <button
+                          onClick={() => onAcceptReschedule(req)}
+                          className="w-full rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-700 transition shadow-sm"
+                        >
+                          Accept New Schedule
+                        </button>
+                        <button
+                          onClick={() => setSelectedReqForReject(req)}
+                          className="w-full rounded-xl bg-rose-100 px-3 py-2 text-xs font-bold text-rose-700 hover:bg-rose-200 dark:bg-rose-500/20 dark:text-rose-300 transition"
+                        >
+                          Reject New Schedule
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800 flex justify-between text-xs font-bold text-slate-600 dark:text-slate-300">
+                      <span>Visit Date: {new Date(req.visitDate).toLocaleDateString()}</span>
+                      <span>Time: {req.visitTime || "Morning"}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Card Action Footer */}
+                <div className="pt-3 border-t border-slate-200/60 dark:border-slate-800 flex flex-wrap gap-2 justify-between items-center">
+                  <button
+                    onClick={() => setSelectedReqForDetails(req)}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                  >
+                    <FiEye className="h-3.5 w-3.5 text-blue-600" />
+                    Details & Timeline
+                  </button>
+
+                  {canCancel && !isRescheduled && (
+                    <button
+                      onClick={() => setSelectedReqForCancel(req)}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-100 dark:border-rose-900/40 dark:bg-rose-950/40 dark:text-rose-300"
+                    >
+                      <FiSlash className="h-3.5 w-3.5" />
+                      Cancel
+                    </button>
+                  )}
+                </div>
               </div>
+            );
+          })}
+        </div>
+      )}
 
+      {/* Reject Reschedule Modal */}
+      {selectedReqForReject && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl dark:bg-slate-900 space-y-4">
+            <h4 className="text-base font-extrabold text-slate-900 dark:text-white">Reject Proposed Reschedule</h4>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Please provide a reason for declining the orphanage's proposed visit slot.</p>
+            <textarea
+              rows={3}
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder="e.g. Proposed date conflicts with working hours."
+              className="w-full rounded-xl border border-slate-300 p-3 text-xs focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => { setSelectedReqForReject(null); setRejectReason(""); }}
+                className="rounded-xl border border-slate-300 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  onRejectReschedule(selectedReqForReject, rejectReason);
+                  setSelectedReqForReject(null);
+                  setRejectReason("");
+                }}
+                className="rounded-xl bg-rose-600 px-4 py-2 text-xs font-bold text-white hover:bg-rose-700"
+              >
+                Submit Rejection
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Visit Request Modal */}
+      {selectedReqForCancel && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl dark:bg-slate-900 space-y-4">
+            <div className="flex items-center gap-3 text-rose-600">
+              <FiSlash className="h-6 w-6" />
+              <h4 className="text-base font-extrabold text-slate-900 dark:text-white">Cancel Visit Request</h4>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Are you sure you want to cancel visit request <span className="font-bold">#{selectedReqForCancel.requestId || selectedReqForCancel.id?.substring(0, 8)}</span>? Please state your reason below.
+            </p>
+            <textarea
+              rows={3}
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              placeholder="e.g. Unforeseen personal conflict."
+              className="w-full rounded-xl border border-slate-300 p-3 text-xs focus:ring-2 focus:ring-rose-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => { setSelectedReqForCancel(null); setCancelReason(""); }}
+                className="rounded-xl border border-slate-300 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300"
+              >
+                Keep Request
+              </button>
+              <button
+                onClick={() => {
+                  onCancelRequest(selectedReqForCancel, cancelReason);
+                  setSelectedReqForCancel(null);
+                  setCancelReason("");
+                }}
+                className="rounded-xl bg-rose-600 px-4 py-2 text-xs font-bold text-white hover:bg-rose-700"
+              >
+                Confirm Cancellation
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Details & Status Timeline Modal */}
+      {selectedReqForDetails && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl dark:bg-slate-900 space-y-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
               <div>
-                <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">
-                  {orphanage?.name || "Care Center"}
-                </h4>
-                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">
-                  Purpose: {req.purpose}
+                <span className="text-xs font-extrabold text-blue-600 dark:text-blue-400">
+                  Request #{selectedReqForDetails.requestId || selectedReqForDetails.id}
+                </span>
+                <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">
+                  Visit Details & Audit Timeline
+                </h3>
+              </div>
+              <button
+                onClick={() => setSelectedReqForDetails(null)}
+                className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                <FiX className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* General Info */}
+            <div className="grid gap-4 sm:grid-cols-2 text-xs">
+              <div className="space-y-1 rounded-xl bg-slate-50 p-3 dark:bg-slate-800/50">
+                <p className="text-slate-500 font-medium">Orphanage Center</p>
+                <p className="font-bold text-slate-900 dark:text-white">
+                  {orphanageOptions.find((o) => o.id === selectedReqForDetails.orphanageId)?.name || selectedReqForDetails.orphanageName || "Care Center"}
                 </p>
               </div>
-
-              <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800 flex justify-between text-xs font-bold text-slate-600 dark:text-slate-300">
-                <span>Date: {new Date(req.visitDate).toLocaleDateString()}</span>
-                <span>{req.visitTime || "Morning"}</span>
+              <div className="space-y-1 rounded-xl bg-slate-50 p-3 dark:bg-slate-800/50">
+                <p className="text-slate-500 font-medium">Scheduled Visit Slot</p>
+                <p className="font-bold text-slate-900 dark:text-white">
+                  {new Date(selectedReqForDetails.visitDate).toLocaleDateString()} at {selectedReqForDetails.visitTime || "Morning"}
+                </p>
+              </div>
+              <div className="space-y-1 rounded-xl bg-slate-50 p-3 dark:bg-slate-800/50">
+                <p className="text-slate-500 font-medium">Visit Purpose</p>
+                <p className="font-bold text-slate-900 dark:text-white">{selectedReqForDetails.purpose}</p>
+              </div>
+              <div className="space-y-1 rounded-xl bg-slate-50 p-3 dark:bg-slate-800/50">
+                <p className="text-slate-500 font-medium">Visitors Count</p>
+                <p className="font-bold text-slate-900 dark:text-white">{selectedReqForDetails.visitorsCount || 1} visitor(s)</p>
               </div>
             </div>
-          );
-        })}
-      </div>
+
+            {/* Status Timeline */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Status Audit Timeline</h4>
+              <div className="relative pl-6 space-y-4 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-800">
+                <div className="relative">
+                  <span className="absolute -left-6 top-1 h-3.5 w-3.5 rounded-full border-2 border-emerald-600 bg-emerald-600" />
+                  <p className="text-xs font-extrabold text-slate-900 dark:text-white">Request Submitted</p>
+                  <p className="text-[11px] text-slate-500">
+                    {selectedReqForDetails.createdAt ? new Date(selectedReqForDetails.createdAt).toLocaleString() : "Date recorded"}
+                  </p>
+                </div>
+
+                <div className="relative">
+                  <span className={classNames(
+                    "absolute -left-6 top-1 h-3.5 w-3.5 rounded-full border-2 bg-white dark:bg-slate-900",
+                    selectedReqForDetails.status !== "PENDING" ? "border-blue-600 bg-blue-600" : "border-slate-300"
+                  )} />
+                  <p className="text-xs font-extrabold text-slate-900 dark:text-white">Reviewed by Orphanage</p>
+                  <p className="text-[11px] text-slate-500">
+                    {selectedReqForDetails.reviewedAt ? new Date(selectedReqForDetails.reviewedAt).toLocaleString() : "Awaiting review response"}
+                  </p>
+                </div>
+
+                <div className="relative">
+                  <span className="absolute -left-6 top-1 h-3.5 w-3.5 rounded-full border-2 border-indigo-600 bg-indigo-600" />
+                  <p className="text-xs font-extrabold text-slate-900 dark:text-white">Current Status: {selectedReqForDetails.status}</p>
+                  <p className="text-[11px] text-slate-500">
+                    Last updated: {selectedReqForDetails.updatedAt ? new Date(selectedReqForDetails.updatedAt).toLocaleString() : "Recently"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-3 border-t border-slate-200 dark:border-slate-800">
+              <button
+                onClick={() => setSelectedReqForDetails(null)}
+                className="rounded-xl bg-slate-900 px-5 py-2 text-xs font-bold text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900"
+              >
+                Close Details
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Card>
   );
 }

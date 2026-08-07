@@ -293,6 +293,8 @@ function LoginForm({
   register, handleSubmit, formState, selectedRole, setSelectedRole,
   error, loading, showPassword, setShowPassword, rememberMe, setRememberMe, onSignup, onSubmit,
 }) {
+  const navigate = useNavigate();
+
   return (
     <div className="space-y-5">
 
@@ -427,13 +429,20 @@ function LoginForm({
         </motion.button>
 
         {/* Bottom Hyperlink: Apply for registration */}
-        <div className="pt-2 text-center">
+        <div className="pt-2 text-center flex flex-col gap-1.5 items-center">
           <button
             type="button"
             onClick={onSignup}
             className="text-xs font-medium text-slate-500 hover:text-[#2563EB] transition-colors"
           >
             New adoptive parent? <span className="font-semibold text-[#2563EB] underline">Apply for registration</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/donor/login')}
+            className="text-xs font-medium text-slate-500 hover:text-[#2563EB] transition-colors flex items-center gap-1 mt-0.5"
+          >
+            ❤️ <span className="font-semibold text-[#2563EB] hover:underline">Donate Now</span>
           </button>
         </div>
 
