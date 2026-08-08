@@ -2,8 +2,11 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { AdoptionStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { Role } from '../common/enums/role.enum';
-import { CreateAdoptionDto, QueryAdoptionDto, UpdateAdoptionStatusDto } from './dto';
+import { CreateAdoptionDto, QueryAdoptionDto, UpdateAdoptionStatusDto, LegalReviewBriefDto } from './dto';
 import { AlertsGenerationService } from '../alerts/alerts-generation.service';
+import { BriefGeneratorService } from './brief-generator.service';
+import { LegalReviewBriefMapper } from './mappers/legal-review-brief.mapper';
+import { LegalReviewBriefService } from './legal-review-brief.service';
 
 export const REQUIRED_ADOPTION_DOCUMENTS = [
   'Adoption Agreement', 'Court Order', 'Guardian Consent', 'Identity Documents',
@@ -15,6 +18,8 @@ export class AdoptionsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly alertsGeneration: AlertsGenerationService,
+    private readonly briefGenerator: BriefGeneratorService,
+    private readonly legalReviewBriefService: LegalReviewBriefService,
   ) {}
 
   async verifyEligibility(parentId: string, childId: string, userId: string, role: Role) {
@@ -139,6 +144,15 @@ export class AdoptionsService {
     if (role === Role.PARENT && row.adoptiveParent?.userId !== userId) throw new ForbiddenException('You do not have access to this adoption');
     await this.assertCanAccessChild(row.child.orphanageId, userId, role);
     return this.serialize(row);
+  }
+
+  async getLegalReviewBriefDto(id: string, userId: string, role: Role): Promise<LegalReviewBriefDto> {
+    return this.legalReviewBriefService.getLegalReviewBrief(id, userId, role);
+  }
+
+  async generateBrief(id: string, userId: string, role: Role): Promise<Buffer> {
+    const briefDto = await this.getLegalReviewBriefDto(id, userId, role);
+    return this.briefGenerator.generateHtml(briefDto);
   }
 
   private include() { return { child: { include: { orphanage: { select: { id: true, name: true } } } }, adoptiveParent: { include: { user: { select: { id: true, firstName: true, lastName: true, email: true, phone: true } } } }, documents: { orderBy: { documentType: 'asc' } } } as const; }

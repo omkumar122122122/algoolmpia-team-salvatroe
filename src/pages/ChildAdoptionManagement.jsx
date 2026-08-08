@@ -235,7 +235,7 @@ function ToastStack({ toasts }) {
   );
 }
 
-function SuccessModal({ open, adoptionId, onClose, completedRecord, parent, child }) {
+function SuccessModal({ open, adoptionId, onClose, completedRecord, parent, child, onDownloadBrief }) {
   if (!open) return null;
 
   const updates = [
@@ -305,7 +305,7 @@ function SuccessModal({ open, adoptionId, onClose, completedRecord, parent, chil
             </div>
 
             <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-              <Button variant="secondary" icon={FiDownload}>Download Adoption Certificate</Button>
+              <Button variant="secondary" icon={FiDownload} onClick={onDownloadBrief}>Generate Legal Brief</Button>
               <Button variant="outline" icon={FiEye}>View Child Profile</Button>
               <Button icon={FiHome}>Go to Dashboard</Button>
             </div>
@@ -467,6 +467,10 @@ export default function ChildAdoptionManagement() {
         adoptionId={adoptionId}
         onClose={() => setModalOpen(false)}
         completedRecord={completedRecord}
+        onDownloadBrief={async () => {
+          try { await adoptionsService.generateBrief(adoptionId); }
+          catch (e) { addToast("Failed to generate brief"); }
+        }}
       />
 
       <motion.div variants={container} initial="hidden" animate="show" className="space-y-6">
@@ -667,7 +671,13 @@ export default function ChildAdoptionManagement() {
                           <td className="table-td"><StatusBadge tone={entry.status === "Completed" ? "success" : "blue"}>{entry.status}</StatusBadge></td>
                           <td className="table-td">{entry.nextCheck}</td>
                           <td className="table-td">
-                            <Button variant="ghost" icon={FiArrowRight} className="min-h-[32px] px-3 py-1.5">Open</Button>
+                            <div className="flex items-center gap-2">
+                              <Button variant="ghost" icon={FiArrowRight} className="min-h-[32px] px-3 py-1.5">Open</Button>
+                              <Button variant="secondary" icon={FiDownload} className="min-h-[32px] px-3 py-1.5" onClick={async () => {
+                                try { await adoptionsService.generateBrief(entry.id); }
+                                catch (e) { addToast("Failed to generate brief"); }
+                              }}>Brief</Button>
+                            </div>
                           </td>
                         </tr>
                       ))}

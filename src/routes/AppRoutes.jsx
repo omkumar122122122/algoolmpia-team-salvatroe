@@ -39,6 +39,7 @@ import DonorRequests      from "../pages/DonorRequests.jsx";
 import MyDonations        from "../pages/MyDonations.jsx";
 import OrphanageDonationRequests from "../pages/OrphanageDonationRequests.jsx";
 import ProtectedRoute       from "./ProtectedRoute.jsx";
+import AdoptionLegalBrief   from "../pages/AdoptionLegalBrief.jsx";
 
 export default function AppRoutes() {
   return (
@@ -50,6 +51,7 @@ export default function AppRoutes() {
       {/* ── Donor Auth Public Routes ─────────────────────── */}
       <Route path="/donor/login"    element={<DonorLogin />} />
       <Route path="/donor/register" element={<DonorRegister />} />
+      <Route path="/brief-sample"   element={<AdoptionLegalBrief />} />
 
       {/* ── Admin ─────────────────────────────────────────── */}
       <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>

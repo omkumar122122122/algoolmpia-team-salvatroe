@@ -1,6 +1,7 @@
-import { BadRequestException, Body, Controller, Get, Param, Patch, Post, Query, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Param, Patch, Post, Query, UploadedFile, UseGuards, UseInterceptors, Res } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Response } from 'express';
 import * as fs from 'fs';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
@@ -11,6 +12,7 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { Role } from '../common/enums/role.enum';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { AdoptionsService } from './adoptions.service';
+import { LegalReviewBriefService } from './legal-review-brief.service';
 import { CreateAdoptionDto, QueryAdoptionDto, UpdateAdoptionStatusDto } from './dto';
 
 @ApiTags('Adoption Records')
@@ -18,7 +20,10 @@ import { CreateAdoptionDto, QueryAdoptionDto, UpdateAdoptionStatusDto } from './
 @Controller('adoptions')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class AdoptionsController {
-  constructor(private readonly adoptions: AdoptionsService) {}
+  constructor(
+    private readonly adoptions: AdoptionsService,
+    private readonly legalReviewBriefService: LegalReviewBriefService,
+  ) {}
 
   @Get('verify')
   @Roles(Role.ADMIN, Role.ORPHANAGE)
@@ -37,6 +42,25 @@ export class AdoptionsController {
   @Roles(Role.ADMIN, Role.ORPHANAGE, Role.PARENT)
   @ApiOperation({ summary: 'Get an adoption record' })
   findOne(@Param('id') id: string, @CurrentUser() user: JwtPayload) { return this.adoptions.findOne(id, user.sub, user.role); }
+
+  @Get(':id/brief')
+  @Roles(Role.ADMIN, Role.ORPHANAGE, Role.PARENT)
+  @ApiOperation({ summary: 'Generate and download legal review brief' })
+  async generateBrief(@Param('id') id: string, @Res() res: Response, @CurrentUser() user: JwtPayload) {
+    const buffer = await this.adoptions.generateBrief(id, user.sub, user.role);
+    res.set({
+      'Content-Type': 'text/html',
+      'Content-Disposition': `attachment; filename="legal-brief-${id}.html"`,
+    });
+    res.send(buffer);
+  }
+
+  @Get(':id/brief/data')
+  @Roles(Role.ADMIN, Role.ORPHANAGE, Role.PARENT)
+  @ApiOperation({ summary: 'Get legal review brief structured DTO data' })
+  async getBriefData(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    return this.legalReviewBriefService.getLegalReviewBrief(id, user.sub, user.role);
+  }
 
   @Post()
   @Roles(Role.ADMIN, Role.ORPHANAGE)
