@@ -435,7 +435,7 @@ export default function HealthMonitoring() {
 }
 
 /* ── Section 1: Child Health Overview ───────────────────── */
-function ChildHealthOverview({ record, onEdit, onDelete, onSchedule }) {
+function ChildHealthOverview({ record, onEdit, onDelete, onSchedule, query = "" }) {
   const cfg = healthStatusCfg[record.healthStatus] ?? healthStatusCfg["Healthy"];
   const days = daysUntil(record.nextCheckup);
   const daysColor = days !== null && days <= 7 ? "text-red-600 dark:text-red-400" : days !== null && days <= 30 ? "text-amber-600 dark:text-amber-400" : "text-green-600 dark:text-green-400";
