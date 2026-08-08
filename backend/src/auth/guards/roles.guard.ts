@@ -32,12 +32,12 @@ export class RolesGuard implements CanActivate {
       throw new ForbiddenException('Authentication required');
     }
 
-    // ADMIN bypasses all role restrictions
-    if (user.role === Role.ADMIN) {
+    const userRoleUpper = String(user.role || '').toUpperCase();
+    if (userRoleUpper === Role.ADMIN) {
       return true;
     }
 
-    const hasRole = requiredRoles.includes(user.role);
+    const hasRole = requiredRoles.some((r) => String(r).toUpperCase() === userRoleUpper);
     if (!hasRole) {
       throw new ForbiddenException(
         `Access denied. Required roles: ${requiredRoles.join(', ')}. Your role: ${user.role}`,

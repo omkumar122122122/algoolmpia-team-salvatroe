@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FiHeart, FiUser, FiCalendar, FiAlertCircle, FiCheckCircle,
   FiClock, FiPlus, FiEdit2, FiTrash2, FiDownload, FiChevronDown,
-  FiChevronUp, FiActivity, FiShield, FiInfo, FiX
+  FiChevronUp, FiActivity, FiShield, FiInfo, FiX, FiSearch,
+  FiFilter, FiRotateCcw, FiBriefcase, FiLayers
 } from "react-icons/fi";
 import Breadcrumb from "../components/Breadcrumb";
 import Button from "../components/Button";
@@ -27,10 +28,31 @@ function formatDate(iso) {
   });
 }
 
+// Helper: Safely highlight search text matches without dangerouslySetInnerHTML
+function HighlightText({ text, query }) {
+  if (!text || !query || !query.trim()) return <>{text}</>;
+  const escaped = query.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const parts = String(text).split(new RegExp(`(${escaped})`, "gi"));
+  return (
+    <>
+      {parts.map((part, i) =>
+        part.toLowerCase() === query.trim().toLowerCase() ? (
+          <mark key={i} className="bg-amber-200/90 text-slate-900 dark:bg-amber-500/40 dark:text-amber-100 px-0.5 rounded font-bold">
+            {part}
+          </mark>
+        ) : (
+          part
+        )
+      )}
+    </>
+  );
+}
+
 const healthStatusCfg = {
   "Healthy":           { badge: "badge-success", dot: "bg-green-500"  },
   "Under Observation": { badge: "badge-warning", dot: "bg-amber-500"  },
   "Critical":          { badge: "badge-danger",  dot: "bg-red-500"    },
+  "Needs Review":      { badge: "badge-danger",  dot: "bg-rose-500"   },
 };
 
 const vaccStatusCfg = {
@@ -51,17 +73,108 @@ const summaryCards = [
 export default function HealthMonitoring() {
   const { user } = useAuth();
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [severityFilter, setSeverityFilter] = useState("all");
+  const [departmentFilter, setDepartmentFilter] = useState("all");
+  const [conditionFilter, setConditionFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState("all");
+
+  const [records, setRecords] = useState(healthRecords);
   const [selected, setSelected] = useState(healthRecords[0]);
   const [addOpen, setAddOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [expandedHistory, setExpandedHistory] = useState(true);
   const [expandedVacc, setExpandedVacc] = useState(true);
-  const [records, setRecords] = useState(healthRecords);
 
-  const filtered = records.filter((r) =>
-    `${r.childName} ${r.childId}`.toLowerCase().includes(search.toLowerCase())
-  );
+  // Debounce search input
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 250);
+    return () => clearTimeout(handler);
+  }, [search]);
+
+  // Combined Filtering Logic across Patient Name, Medical Text, Severity, Dept, Condition & Date
+  const filtered = useMemo(() => {
+    return records.filter((r) => {
+      // 1. Search (Patient Name, ID, Diagnosis, Treatment, Notes, Allergies, Doctor)
+      if (debouncedSearch.trim()) {
+        const q = debouncedSearch.trim().toLowerCase();
+        const nameMatch = r.childName?.toLowerCase().includes(q);
+        const idMatch = r.childId?.toLowerCase().includes(q);
+        const condMatch = r.conditions?.toLowerCase().includes(q);
+        const doctorMatch = r.doctor?.toLowerCase().includes(q);
+        const allergyMatch = r.allergies?.toLowerCase().includes(q);
+        const historyMatch = r.healthHistory?.some(
+          (h) =>
+            h.diagnosis?.toLowerCase().includes(q) ||
+            h.treatment?.toLowerCase().includes(q) ||
+            h.notes?.toLowerCase().includes(q)
+        );
+
+        if (!(nameMatch || idMatch || condMatch || doctorMatch || allergyMatch || historyMatch)) {
+          return false;
+        }
+      }
+
+      // 2. Severity / Health Status Filter
+      if (severityFilter !== "all" && r.healthStatus !== severityFilter) {
+        return false;
+      }
+
+      // 3. Department / Facility Filter
+      if (departmentFilter !== "all") {
+        const docLower = (r.doctor || "").toLowerCase();
+        const condLower = (r.conditions || "").toLowerCase();
+        if (departmentFilter === "pediatrics" && !docLower.includes("priya") && !docLower.includes("pediatrics")) return false;
+        if (departmentFilter === "neurology" && !condLower.includes("migraine") && !docLower.includes("neha")) return false;
+        if (departmentFilter === "general" && !docLower.includes("amit") && !docLower.includes("general")) return false;
+        if (departmentFilter === "cardiology" && !condLower.includes("cardio") && !docLower.includes("rajan")) return false;
+      }
+
+      // 4. Condition Type Filter
+      if (conditionFilter !== "all") {
+        const condLower = (r.conditions || "").toLowerCase();
+        if (conditionFilter === "asthma" && !condLower.includes("asthma")) return false;
+        if (conditionFilter === "migraine" && !condLower.includes("migraine")) return false;
+        if (conditionFilter === "anaemia" && !condLower.includes("anaemia") && !condLower.includes("anemia")) return false;
+        if (conditionFilter === "routine" && !condLower.includes("routine") && !condLower.includes("no chronic")) return false;
+      }
+
+      // 5. Date / Timeline Filter
+      if (dateFilter !== "all") {
+        const days = daysUntil(r.nextCheckup);
+        if (dateFilter === "due_soon" && (days === null || days < 0 || days > 30)) return false;
+        if (dateFilter === "overdue" && (days === null || days >= 0)) return false;
+      }
+
+      return true;
+    });
+  }, [records, debouncedSearch, severityFilter, departmentFilter, conditionFilter, dateFilter]);
+
+  // Keep selected record valid after filtering
+  useEffect(() => {
+    if (filtered.length > 0 && (!selected || !filtered.find((r) => r.childId === selected.childId))) {
+      setSelected(filtered[0]);
+    }
+  }, [filtered, selected]);
+
+  const handleResetFilters = useCallback(() => {
+    setSearch("");
+    setDebouncedSearch("");
+    setSeverityFilter("all");
+    setDepartmentFilter("all");
+    setConditionFilter("all");
+    setDateFilter("all");
+  }, []);
+
+  const hasActiveFilters =
+    search.trim() !== "" ||
+    severityFilter !== "all" ||
+    departmentFilter !== "all" ||
+    conditionFilter !== "all" ||
+    dateFilter !== "all";
 
   function handleDelete() {
     setRecords((prev) => prev.filter((r) => r.childId !== selected.childId));
@@ -123,15 +236,138 @@ export default function HealthMonitoring() {
         ))}
       </div>
 
+      {/* Health Record Search & Filter Control Bar */}
+      <div className="rounded-[20px] border border-slate-200/80 bg-white/90 p-5 shadow-card backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/90 space-y-4">
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+          {/* Search Input */}
+          <div className="relative flex-1">
+            <FiSearch className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search patient or report text, diagnosis, doctor, allergies..."
+              className="w-full rounded-xl border border-slate-200 bg-white pl-10 pr-10 py-2.5 text-xs font-semibold text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="absolute right-3.5 top-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
+                <FiX className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between lg:justify-end gap-3">
+            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+              Showing {filtered.length} of {records.length} records
+            </span>
+            {hasActiveFilters && (
+              <button
+                onClick={handleResetFilters}
+                className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-100 hover:bg-slate-200 px-3.5 py-2 text-xs font-extrabold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 transition"
+              >
+                <FiRotateCcw className="h-3.5 w-3.5" />
+                Reset Filters
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Dropdown Filters Row */}
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Severity Filter */}
+          <div>
+            <label className="block text-[11px] font-extrabold text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1">
+              <FiAlertCircle className="h-3 w-3 text-rose-500" /> Severity / Status
+            </label>
+            <select
+              value={severityFilter}
+              onChange={(e) => setSeverityFilter(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 outline-none focus:border-blue-500 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+            >
+              <option value="all">All Severities</option>
+              <option value="Healthy">Healthy ✓</option>
+              <option value="Under Observation">Under Observation ⚠️</option>
+              <option value="Critical">Critical 🚨</option>
+              <option value="Needs Review">Needs Review</option>
+            </select>
+          </div>
+
+          {/* Department Filter */}
+          <div>
+            <label className="block text-[11px] font-extrabold text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1">
+              <FiBriefcase className="h-3 w-3 text-blue-500" /> Department / Clinic
+            </label>
+            <select
+              value={departmentFilter}
+              onChange={(e) => setDepartmentFilter(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 outline-none focus:border-blue-500 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+            >
+              <option value="all">All Departments</option>
+              <option value="pediatrics">Pediatrics Clinic</option>
+              <option value="neurology">Neurology / Migraine</option>
+              <option value="cardiology">Cardiology</option>
+              <option value="general">General Medicine</option>
+            </select>
+          </div>
+
+          {/* Condition Type Filter */}
+          <div>
+            <label className="block text-[11px] font-extrabold text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1">
+              <FiLayers className="h-3 w-3 text-indigo-500" /> Condition Type
+            </label>
+            <select
+              value={conditionFilter}
+              onChange={(e) => setConditionFilter(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 outline-none focus:border-blue-500 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+            >
+              <option value="all">All Conditions</option>
+              <option value="asthma">Asthma / Respiratory</option>
+              <option value="migraine">Migraine</option>
+              <option value="anaemia">Anaemia / Nutrition</option>
+              <option value="routine">Routine / No Chronic Condition</option>
+            </select>
+          </div>
+
+          {/* Date / Timeline Filter */}
+          <div>
+            <label className="block text-[11px] font-extrabold text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1">
+              <FiCalendar className="h-3 w-3 text-emerald-500" /> Date / Timeline
+            </label>
+            <select
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 outline-none focus:border-blue-500 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+            >
+              <option value="all">All Timeline</option>
+              <option value="due_soon">Checkup Due Within 30 Days</option>
+              <option value="overdue">Overdue Checkup</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
       {/* Child selector + detail layout */}
       <div className="grid gap-5 xl:grid-cols-[300px_1fr]">
 
         {/* Left — child list */}
         <div className="space-y-3">
-          <SearchBar value={search} onChange={setSearch} placeholder="Search child…" />
           <div className="space-y-2">
             {filtered.length === 0 && (
-              <p className="py-6 text-center text-sm text-slate-400 dark:text-slate-500">No records found.</p>
+              <div className="py-12 text-center rounded-2xl border border-gray-100 bg-white p-6 shadow-card dark:border-slate-800 dark:bg-slate-900 space-y-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-500/20 mx-auto">
+                  <FiFilter className="h-5 w-5" />
+                </div>
+                <p className="text-xs font-bold text-slate-700 dark:text-slate-200">No health records found matching your filters.</p>
+                <button
+                  onClick={handleResetFilters}
+                  className="inline-flex items-center gap-1 rounded-xl bg-civic-500 px-3 py-1.5 text-[11px] font-extrabold text-white shadow-sm"
+                >
+                  <FiRotateCcw className="h-3 w-3" /> Reset Filters
+                </button>
+              </div>
             )}
             {filtered.map((rec) => {
               const cfg = healthStatusCfg[rec.healthStatus] ?? healthStatusCfg["Healthy"];
@@ -155,8 +391,12 @@ export default function HealthMonitoring() {
                       {rec.childName.split(" ").map(n => n[0]).join("").slice(0, 2)}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className={classNames("truncate text-[13px] font-bold", isActive ? "text-civic-700 dark:text-civic-300" : "text-slate-900 dark:text-white")}>{rec.childName}</p>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400">{rec.childId} · Age {rec.age}</p>
+                      <p className={classNames("truncate text-[13px] font-bold", isActive ? "text-civic-700 dark:text-civic-300" : "text-slate-900 dark:text-white")}>
+                        <HighlightText text={rec.childName} query={debouncedSearch} />
+                      </p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        <HighlightText text={rec.childId} query={debouncedSearch} /> · Age {rec.age}
+                      </p>
                     </div>
                     <span className={classNames("badge shrink-0", cfg.badge)}>{rec.healthStatus}</span>
                   </div>
@@ -169,11 +409,11 @@ export default function HealthMonitoring() {
         {/* Right — detail panels */}
         {selected ? (
           <div className="space-y-5 min-w-0">
-            <ChildHealthOverview record={selected} onEdit={() => setAddOpen(true)} onDelete={() => setDeleteOpen(true)} onSchedule={() => setScheduleOpen(true)} />
-            <MedicalInformation record={selected} />
-            <CheckupTracker record={selected} onSchedule={() => setScheduleOpen(true)} />
-            <VaccinationTracker record={selected} expanded={expandedVacc} onToggle={() => setExpandedVacc(v => !v)} />
-            <HealthHistory record={selected} expanded={expandedHistory} onToggle={() => setExpandedHistory(v => !v)} />
+            <ChildHealthOverview record={selected} onEdit={() => setAddOpen(true)} onDelete={() => setDeleteOpen(true)} onSchedule={() => setScheduleOpen(true)} query={debouncedSearch} />
+            <MedicalInformation record={selected} query={debouncedSearch} />
+            <CheckupTracker record={selected} onSchedule={() => setScheduleOpen(true)} query={debouncedSearch} />
+            <VaccinationTracker record={selected} expanded={expandedVacc} onToggle={() => setExpandedVacc(v => !v)} query={debouncedSearch} />
+            <HealthHistory record={selected} expanded={expandedHistory} onToggle={() => setExpandedHistory(v => !v)} query={debouncedSearch} />
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center rounded-2xl border border-gray-100 bg-white py-16 text-center shadow-card dark:border-slate-800 dark:bg-slate-900">
@@ -195,7 +435,7 @@ export default function HealthMonitoring() {
 }
 
 /* ── Section 1: Child Health Overview ───────────────────── */
-function ChildHealthOverview({ record, onEdit, onDelete, onSchedule }) {
+function ChildHealthOverview({ record, onEdit, onDelete, onSchedule, query = "" }) {
   const cfg = healthStatusCfg[record.healthStatus] ?? healthStatusCfg["Healthy"];
   const days = daysUntil(record.nextCheckup);
   const daysColor = days !== null && days <= 7 ? "text-red-600 dark:text-red-400" : days !== null && days <= 30 ? "text-amber-600 dark:text-amber-400" : "text-green-600 dark:text-green-400";
@@ -228,14 +468,14 @@ function ChildHealthOverview({ record, onEdit, onDelete, onSchedule }) {
           </div>
           {/* Details grid */}
           <div className="grid flex-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <InfoField label="Child Name"   value={record.childName} />
+            <InfoField label="Child Name"   value={record.childName} query={query} />
             <InfoField label="Age"          value={`${record.age} years`} />
             <InfoField label="Gender"       value={record.gender} />
             <InfoField label="Blood Group"  value={record.bloodGroup} accent />
             <InfoField label="Height"       value={record.height} />
             <InfoField label="Weight"       value={record.weight} />
             <InfoField label="BMI"          value={record.bmi} />
-            <InfoField label="Doctor"       value={record.doctor} />
+            <InfoField label="Doctor"       value={record.doctor} query={query} />
             <InfoField label="Last Checkup" value={formatDate(record.lastCheckup)} />
             <InfoField label="Next Checkup" value={formatDate(record.nextCheckup)} />
             <div className="field-block">
@@ -253,7 +493,7 @@ function ChildHealthOverview({ record, onEdit, onDelete, onSchedule }) {
 }
 
 /* ── Section 2: Medical Information ─────────────────────── */
-function MedicalInformation({ record }) {
+function MedicalInformation({ record, query }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-card dark:border-slate-800 dark:bg-slate-900">
       <div className="flex items-center gap-2 border-b border-gray-100 px-5 py-4 dark:border-slate-800">
@@ -263,12 +503,12 @@ function MedicalInformation({ record }) {
         <h2 className="text-sm font-bold text-slate-900 dark:text-white">Medical Information</h2>
       </div>
       <div className="grid gap-3 p-5 sm:grid-cols-2 xl:grid-cols-3">
-        <InfoField label="Allergies"            value={record.allergies} />
-        <InfoField label="Medical Conditions"   value={record.conditions} />
-        <InfoField label="Current Medications"  value={record.medications} wide />
+        <InfoField label="Allergies"            value={record.allergies} query={query} />
+        <InfoField label="Medical Conditions"   value={record.conditions} query={query} />
+        <InfoField label="Current Medications"  value={record.medications} wide query={query} />
         <InfoField label="Vaccination Status"   value={record.vaccinationStatus} />
         <InfoField label="Emergency Contact"    value={record.emergencyContact} />
-        <InfoField label="Assigned Doctor"      value={record.doctor} />
+        <InfoField label="Assigned Doctor"      value={record.doctor} query={query} />
       </div>
     </div>
   );
@@ -406,7 +646,7 @@ function VaccinationTracker({ record, expanded, onToggle }) {
 }
 
 /* ── Section 5: Health History ───────────────────────────── */
-function HealthHistory({ record, expanded, onToggle }) {
+function HealthHistory({ record, expanded, onToggle, query }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-card dark:border-slate-800 dark:bg-slate-900">
       <button
@@ -451,22 +691,30 @@ function HealthHistory({ record, expanded, onToggle }) {
                     {/* Content card */}
                     <div className={classNames("flex-1 rounded-xl border border-gray-100 bg-gray-50 p-4 dark:border-slate-700 dark:bg-slate-800/50", i < record.healthHistory.length - 1 ? "mb-4" : "")}>
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <p className="text-[13px] font-bold text-slate-900 dark:text-white">{entry.diagnosis}</p>
+                        <p className="text-[13px] font-bold text-slate-900 dark:text-white">
+                          <HighlightText text={entry.diagnosis} query={query} />
+                        </p>
                         <span className="text-xs font-medium text-slate-500 dark:text-slate-400">{formatDate(entry.date)}</span>
                       </div>
                       <div className="mt-2 grid gap-2 sm:grid-cols-2">
                         <div>
                           <span className="field-label">Doctor</span>
-                          <p className="field-value">{entry.doctor}</p>
+                          <p className="field-value">
+                            <HighlightText text={entry.doctor} query={query} />
+                          </p>
                         </div>
                         <div>
                           <span className="field-label">Treatment</span>
-                          <p className="field-value">{entry.treatment}</p>
+                          <p className="field-value">
+                            <HighlightText text={entry.treatment} query={query} />
+                          </p>
                         </div>
                         {entry.notes && (
                           <div className="sm:col-span-2">
                             <span className="field-label">Notes</span>
-                            <p className="field-value">{entry.notes}</p>
+                            <p className="field-value">
+                              <HighlightText text={entry.notes} query={query} />
+                            </p>
                           </div>
                         )}
                       </div>
@@ -658,7 +906,7 @@ function ScheduleModal({ open, record, onClose }) {
 }
 
 /* ── Shared InfoField sub-component ──────────────────────── */
-function InfoField({ label, value, wide = false, accent = false }) {
+function InfoField({ label, value, wide = false, accent = false, query = "" }) {
   return (
     <div className={classNames("field-block min-w-0", wide ? "sm:col-span-2" : "")}>
       <span className="field-label">{label}</span>
@@ -666,7 +914,7 @@ function InfoField({ label, value, wide = false, accent = false }) {
         "field-value mt-1.5 truncate",
         accent ? "font-bold text-civic-700 dark:text-civic-400" : ""
       )} title={value || "Not provided"}>
-        {value || "Not provided"}
+        {value ? <HighlightText text={value} query={query} /> : "Not provided"}
       </p>
     </div>
   );

@@ -224,6 +224,26 @@ export const children = [
     allergies: "None recorded",
     emergencyContact: "Hope Nest Welfare Desk, +91 98765 11145",
     adopted: false
+  },
+  {
+    id: "CH-1099",
+    name: "John Miller",
+    age: 10,
+    gender: "Male",
+    bloodGroup: "O+",
+    orphanage: "Sunrise Care Home",
+    risk: "High",
+    health: "Critical",
+    attendance: 88,
+    admissionDate: "2023-02-10",
+    caseWorker: "Neha Kapoor",
+    educationLevel: "Class 5",
+    medicalHistory: "Cardiology arrhythmia and heart murmur under cardiology follow-up.",
+    medicalHistoryFile: "CH-1099-medical-history.pdf",
+    vaccinationStatus: "Up to date",
+    allergies: "Penicillin allergy",
+    emergencyContact: "Sunrise Care Home Office, +91 98765 11099",
+    adopted: false
   }
 ];
 
@@ -592,13 +612,44 @@ export const healthRecords = [
       { date: "2024-09-15", doctor: "Dr. Rajan Mehta",  diagnosis: "Wrist fracture",      treatment: "Plaster cast, calcium + vitamin D course",   notes: "Left distal radius fracture. Cast removed after 5 weeks." },
       { date: "2024-06-10", doctor: "Dr. Priya Menon",  diagnosis: "Routine checkup",     treatment: "General health assessment",                  notes: "All vitals normal. Good growth trajectory." }
     ]
+  },
+  {
+    childId: "CH-1099",
+    childName: "John Miller",
+    age: 10,
+    gender: "Male",
+    bloodGroup: "O+",
+    height: "136 cm",
+    weight: "31 kg",
+    bmi: "16.7",
+    lastCheckup: "2026-06-10",
+    nextCheckup: "2026-07-10",
+    healthStatus: "Critical",
+    doctor: "Dr. Rajan Mehta (Cardiology)",
+    allergies: "Penicillin allergy",
+    conditions: "Cardiology arrhythmia and murmur observation",
+    medications: "Atenolol 12.5mg (daily), monthly ECG monitoring",
+    emergencyContact: "+91 98765 11099",
+    vaccinationStatus: "Up to date",
+    vaccinations: [
+      { name: "BCG",        dateGiven: "2016-01-10", nextDue: null,         status: "Completed" },
+      { name: "Hepatitis B",dateGiven: "2016-01-10", nextDue: null,         status: "Completed" },
+      { name: "OPV",        dateGiven: "2018-05-15", nextDue: null,         status: "Completed" },
+      { name: "MMR",        dateGiven: "2020-02-20", nextDue: null,         status: "Completed" },
+      { name: "Typhoid",    dateGiven: "2024-03-10", nextDue: "2026-03-10", status: "Completed" },
+      { name: "Influenza",  dateGiven: "2025-10-01", nextDue: "2026-10-01", status: "Pending"   }
+    ],
+    healthHistory: [
+      { date: "2026-06-10", doctor: "Dr. Rajan Mehta", diagnosis: "Cardiac Arrhythmia Follow-up", treatment: "Echocardiogram done, Atenolol adjusted", notes: "Mild mitral regurgitation noted. Cardiology clinic follow-up in 1 month." },
+      { date: "2026-01-15", doctor: "Dr. Rajan Mehta", diagnosis: "Heart Murmur Evaluation", treatment: "ECG + Consultation", notes: "Referred to pediatric cardiology department. Strict activity limits." }
+    ]
   }
 ];
 
 export const healthSummary = {
-  totalChildren: 6,
-  checkupsDue: 3,
+  totalChildren: 7,
+  checkupsDue: 4,
   overdueCheckups: 1,
-  vaccinationsDue: 6,
+  vaccinationsDue: 7,
   healthyChildren: 4
 };
