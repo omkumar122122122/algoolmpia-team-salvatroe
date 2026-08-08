@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, Param, Patch, Post, Query, UploadedFile, UseGuards, UseInterceptors, Res } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, HttpException, InternalServerErrorException, Param, Patch, Post, Query, UploadedFile, UseGuards, UseInterceptors, Res } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
@@ -45,14 +45,48 @@ export class AdoptionsController {
 
   @Get(':id/brief')
   @Roles(Role.ADMIN, Role.ORPHANAGE, Role.PARENT)
-  @ApiOperation({ summary: 'Generate and download legal review brief' })
-  async generateBrief(@Param('id') id: string, @Res() res: Response, @CurrentUser() user: JwtPayload) {
-    const buffer = await this.adoptions.generateBrief(id, user.sub, user.role);
-    res.set({
-      'Content-Type': 'text/html',
-      'Content-Disposition': `attachment; filename="legal-brief-${id}.html"`,
-    });
-    res.send(buffer);
+  @ApiOperation({ summary: 'Download Legal Review Brief (PDF or HTML)' })
+  @ApiResponse({ status: 200, description: 'Downloadable PDF or HTML legal review brief document' })
+  @ApiResponse({ status: 400, description: 'Invalid record ID format' })
+  @ApiResponse({ status: 403, description: 'Unauthorized access to legal record' })
+  @ApiResponse({ status: 404, description: 'Adoption legal record not found' })
+  @ApiResponse({ status: 500, description: 'Document generation failure' })
+  async generateBrief(
+    @Param('id') id: string,
+    @Query('format') format: string,
+    @Res() res: Response,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    if (!id || typeof id !== 'string' || id.trim() === '' || id.length > 64) {
+      throw new BadRequestException('Invalid legal record ID parameter');
+    }
+
+    const safeId = id.replace(/[^a-zA-Z0-9_-]/g, '');
+
+    try {
+      if (format?.toLowerCase() === 'html') {
+        const buffer = await this.adoptions.generateBrief(id, user.sub, user.role);
+        res.set({
+          'Content-Type': 'text/html',
+          'Content-Disposition': `attachment; filename="legal-review-brief-${safeId}.html"`,
+        });
+        return res.send(buffer);
+      }
+
+      const buffer = await this.adoptions.generateBriefPdf(id, user.sub, user.role);
+      res.set({
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="legal-review-brief-${safeId}.pdf"`,
+      });
+      return res.send(buffer);
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        'An unexpected error occurred while generating the legal review brief PDF',
+      );
+    }
   }
 
   @Get(':id/brief/data')

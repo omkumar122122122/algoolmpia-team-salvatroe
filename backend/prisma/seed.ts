@@ -17,6 +17,7 @@ import {
   OrphanageStaffRole,
   LicenseType,
   LicenseStatus,
+  PoliceVerificationStatus,
 } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 
@@ -547,6 +548,100 @@ async function main() {
     },
   });
   console.log('   ✅ 3 children created');
+
+  // ═══════════════════════════════════════════════════════════════
+  // 7. DEMO LEGAL REVIEW BRIEF ADOPTION RECORD (For Judges / Audit)
+  // ═══════════════════════════════════════════════════════════════
+  console.log('\n📜 Seeding Demo Legal Review Brief Record...');
+
+  const demoAdoptionRecord = await prisma.adoptionRecord.upsert({
+    where: { id: 'DEMO-LR-001' },
+    update: {
+      status: AdoptionStatus.COMPLETED,
+      courtName: 'District Family Court, Central New Delhi',
+      courtCaseNumber: 'FC/ADO/2026/0492',
+      caraReferenceNumber: 'CARA-REG-2026-ND-8899',
+      caraStatus: 'APPROVED',
+      reviewNotes: 'All statutory adoption checks cleared cleanly per juvenile welfare guidelines. Final court order decree validated.',
+    },
+    create: {
+      id: 'DEMO-LR-001',
+      childId: child2.id,
+      adoptiveParentId: parent.id,
+      status: AdoptionStatus.COMPLETED,
+      legalProcessStart: new Date('2026-01-01'),
+      completedDate: new Date('2026-02-01'),
+      courtName: 'District Family Court, Central New Delhi',
+      courtCaseNumber: 'FC/ADO/2026/0492',
+      courtOrderDate: new Date('2026-01-20'),
+      adoptionCertNumber: 'CERT-DELHI-2026-88',
+      postAdoptionFollowUp1: new Date('2026-05-01'),
+      caraReferenceNumber: 'CARA-REG-2026-ND-8899',
+      caraStatus: 'APPROVED',
+      reviewedById: admin.id,
+      reviewNotes: 'All statutory adoption checks cleared cleanly per juvenile welfare guidelines. Final court order decree validated.',
+    },
+  });
+
+  // Seed documents for DEMO-LR-001
+  const docTypes = [
+    { type: 'CARA_CLEARANCE', name: 'cara_clearance_cert.pdf', verified: true },
+    { type: 'COURT_ORDER', name: 'court_order_decree.pdf', verified: true },
+    { type: 'POLICE_CLEARANCE', name: 'police_clearance_certificate.pdf', verified: true },
+    { type: 'PARENT_KYC', name: 'parent_identity_kyc.pdf', verified: true },
+    { type: 'FINANCIAL_PROOFS', name: 'annual_income_statement.pdf', verified: false },
+    { type: 'MEDICAL_FITNESS', name: 'medical_health_check.pdf', verified: true },
+  ];
+
+  for (const doc of docTypes) {
+    await prisma.adoptionDocument.upsert({
+      where: {
+        adoptionRecordId_documentType: {
+          adoptionRecordId: demoAdoptionRecord.id,
+          documentType: doc.type,
+        },
+      },
+      update: {
+        isVerified: doc.verified,
+      },
+      create: {
+        adoptionRecordId: demoAdoptionRecord.id,
+        documentType: doc.type,
+        fileName: doc.name,
+        originalName: doc.name,
+        mimeType: 'application/pdf',
+        fileSize: 245000,
+        storagePath: `/uploads/adoptions/${doc.name}`,
+        isVerified: doc.verified,
+        uploadedById: admin.id,
+        ...(doc.verified ? { verifiedById: admin.id, verifiedAt: new Date('2026-01-15') } : {}),
+      },
+    });
+  }
+
+  // Seed Police verification for parent
+  await prisma.policeVerification.upsert({
+    where: { id: 'POLICE-VER-DEMO-001' },
+    update: {
+      status: PoliceVerificationStatus.CLEARED,
+      crimeRecordFound: false,
+    },
+    create: {
+      id: 'POLICE-VER-DEMO-001',
+      parentId: parent.id,
+      appliedStation: 'Parliament Street Police Station',
+      officerName: 'Inspector Rajesh Verma',
+      status: PoliceVerificationStatus.CLEARED,
+      clearedAt: new Date('2026-01-15'),
+      certificateNumber: 'PCC-DL-2026-77881',
+      crimeRecordFound: false,
+      initiatedById: admin.id,
+      reviewedById: admin.id,
+      reviewNotes: 'Background verification clean. No criminal records found.',
+    },
+  });
+
+  console.log('   ✅ Demo Legal Record (DEMO-LR-001) seeded successfully!');
 
   // ═══════════════════════════════════════════════════════════════
   // SUMMARY

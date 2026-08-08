@@ -40,6 +40,8 @@ import MyDonations        from "../pages/MyDonations.jsx";
 import OrphanageDonationRequests from "../pages/OrphanageDonationRequests.jsx";
 import ProtectedRoute       from "./ProtectedRoute.jsx";
 import AdoptionLegalBrief   from "../pages/AdoptionLegalBrief.jsx";
+import AdminLegalReview     from "../pages/AdminLegalReview.jsx";
+import AdminLegalRecordDetail from "../pages/AdminLegalRecordDetail.jsx";
 
 export default function AppRoutes() {
   return (
@@ -70,6 +72,10 @@ export default function AppRoutes() {
           <Route path="alerts"                            element={<Alerts />} />
           <Route path="profile"                           element={<Profile />} />
           <Route path="parent-verification"               element={<ParentVerificationCenter />} />
+          <Route path="legal-records text-left"           element={<AdminLegalReview />} />
+          <Route path="legal-records"                     element={<AdminLegalReview />} />
+          <Route path="legal-records/:id"                 element={<AdminLegalRecordDetail />} />
+          <Route path="legal-review"                      element={<Navigate to="/admin/legal-records" replace />} />
           <Route path="staff"                             element={<StaffManagement />} />
           <Route path="staff/:staffId"                    element={<StaffProfile />} />
           <Route path="adoption-management"               element={<ChildAdoptionManagement />} />

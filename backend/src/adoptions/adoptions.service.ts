@@ -7,6 +7,7 @@ import { AlertsGenerationService } from '../alerts/alerts-generation.service';
 import { BriefGeneratorService } from './brief-generator.service';
 import { LegalReviewBriefMapper } from './mappers/legal-review-brief.mapper';
 import { LegalReviewBriefService } from './legal-review-brief.service';
+import { LegalBriefPdfGenerator } from './legal-brief-pdf.generator';
 
 export const REQUIRED_ADOPTION_DOCUMENTS = [
   'Adoption Agreement', 'Court Order', 'Guardian Consent', 'Identity Documents',
@@ -20,6 +21,7 @@ export class AdoptionsService {
     private readonly alertsGeneration: AlertsGenerationService,
     private readonly briefGenerator: BriefGeneratorService,
     private readonly legalReviewBriefService: LegalReviewBriefService,
+    private readonly pdfGenerator: LegalBriefPdfGenerator,
   ) {}
 
   async verifyEligibility(parentId: string, childId: string, userId: string, role: Role) {
@@ -153,6 +155,11 @@ export class AdoptionsService {
   async generateBrief(id: string, userId: string, role: Role): Promise<Buffer> {
     const briefDto = await this.getLegalReviewBriefDto(id, userId, role);
     return this.briefGenerator.generateHtml(briefDto);
+  }
+
+  async generateBriefPdf(id: string, userId: string, role: Role): Promise<Buffer> {
+    const briefDto = await this.getLegalReviewBriefDto(id, userId, role);
+    return this.pdfGenerator.generatePdf(briefDto);
   }
 
   private include() { return { child: { include: { orphanage: { select: { id: true, name: true } } } }, adoptiveParent: { include: { user: { select: { id: true, firstName: true, lastName: true, email: true, phone: true } } } }, documents: { orderBy: { documentType: 'asc' } } } as const; }

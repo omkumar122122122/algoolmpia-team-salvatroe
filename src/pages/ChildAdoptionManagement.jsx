@@ -235,8 +235,10 @@ function ToastStack({ toasts }) {
   );
 }
 
-function SuccessModal({ open, adoptionId, onClose, completedRecord, parent, child, onDownloadBrief }) {
+function SuccessModal({ open, adoptionId, onClose, completedRecord, parent, child, onDownloadBrief, downloadingBriefId }) {
   if (!open) return null;
+
+  const isDownloading = downloadingBriefId === adoptionId;
 
   const updates = [
     'Child Status Updated to "Adopted"',
@@ -305,10 +307,170 @@ function SuccessModal({ open, adoptionId, onClose, completedRecord, parent, chil
             </div>
 
             <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-              <Button variant="secondary" icon={FiDownload} onClick={onDownloadBrief}>Generate Legal Brief</Button>
+              <Button
+                variant="secondary"
+                icon={isDownloading ? FiRefreshCw : FiDownload}
+                disabled={!!downloadingBriefId}
+                onClick={() => onDownloadBrief(adoptionId)}
+              >
+                {isDownloading ? "Generating Brief..." : "Download Review Brief"}
+              </Button>
               <Button variant="outline" icon={FiEye}>View Child Profile</Button>
               <Button icon={FiHome}>Go to Dashboard</Button>
             </div>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
+function LegalBriefPreviewModal({ open, briefData, onClose, onDownloadPdf, downloading }) {
+  if (!open || !briefData) return null;
+
+  const {
+    legalRecordInfo = {},
+    keyClauses = [],
+    detectedIssues = [],
+    verificationStatus = {},
+    reviewerNotes = [],
+    reviewSummary = {},
+  } = briefData;
+
+  const formatDate = (d) => (d ? new Date(d).toLocaleDateString('en-IN') : 'N/A');
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+      >
+        <motion.div
+          initial={{ opacity: 0, y: 18, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 18, scale: 0.98 }}
+          className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl border border-gray-100 bg-white p-6 shadow-modal dark:border-slate-800 dark:bg-slate-900"
+        >
+          {/* Header */}
+          <div className="flex items-start justify-between border-b border-gray-100 pb-4 dark:border-slate-800">
+            <div className="flex items-center gap-3">
+              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-civic-50 text-civic-700 dark:bg-civic-500/10 dark:text-civic-300">
+                <FiShield className="h-6 w-6" />
+              </span>
+              <div>
+                <h2 className="text-xl font-black text-slate-900 dark:text-white">LEGAL REVIEW BRIEF — PREVIEW</h2>
+                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                  AI Powered Orphanage Child Safety Management System | Confidential
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+              aria-label="Close preview modal"
+            >
+              <FiX className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="mt-6 space-y-6 text-sm text-slate-800 dark:text-slate-200">
+            {/* 1. Record Information */}
+            <div className="rounded-2xl border border-gray-100 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-950/40">
+              <h3 className="text-xs font-black uppercase tracking-wider text-civic-700 dark:text-civic-400">1. Record Information</h3>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <div><span className="text-xs font-bold text-slate-400 uppercase">Record ID:</span> <p className="font-semibold text-slate-900 dark:text-white">{legalRecordInfo.recordId}</p></div>
+                <div><span className="text-xs font-bold text-slate-400 uppercase">Child Name & Code:</span> <p className="font-semibold text-slate-900 dark:text-white">{legalRecordInfo.childName} ({legalRecordInfo.childCode})</p></div>
+                <div><span className="text-xs font-bold text-slate-400 uppercase">Adoptive Parent:</span> <p className="font-semibold text-slate-900 dark:text-white">{legalRecordInfo.parentName || 'Pending Parent Linkage'}</p></div>
+                <div><span className="text-xs font-bold text-slate-400 uppercase">Orphanage Institution:</span> <p className="font-semibold text-slate-900 dark:text-white">{legalRecordInfo.orphanageName || 'N/A'}</p></div>
+                <div><span className="text-xs font-bold text-slate-400 uppercase">Process Started:</span> <p className="font-semibold text-slate-900 dark:text-white">{formatDate(legalRecordInfo.legalProcessStart)}</p></div>
+                <div><span className="text-xs font-bold text-slate-400 uppercase">Completion Date:</span> <p className="font-semibold text-slate-900 dark:text-white">{formatDate(legalRecordInfo.completedDate)}</p></div>
+              </div>
+            </div>
+
+            {/* 2. Verification Status */}
+            <div className="rounded-2xl border border-gray-100 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-950/40">
+              <h3 className="text-xs font-black uppercase tracking-wider text-civic-700 dark:text-civic-400">2. Verification Status</h3>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <div><span className="text-xs font-bold text-slate-400 uppercase">Overall Status:</span> <p className="font-bold text-green-600 dark:text-green-400">{verificationStatus.overallStatus}</p></div>
+                <div><span className="text-xs font-bold text-slate-400 uppercase">Parent Background:</span> <p className="font-semibold text-slate-900 dark:text-white">{verificationStatus.parentVerificationStatus}</p></div>
+                <div><span className="text-xs font-bold text-slate-400 uppercase">Parent Identity KYC:</span> <p className="font-semibold text-slate-900 dark:text-white">{verificationStatus.parentKycStatus}</p></div>
+                <div><span className="text-xs font-bold text-slate-400 uppercase">Police Clearance:</span> <p className="font-semibold text-slate-900 dark:text-white">{verificationStatus.policeVerificationStatus}</p></div>
+                <div><span className="text-xs font-bold text-slate-400 uppercase">Document Ratio:</span> <p className="font-semibold text-slate-900 dark:text-white">{verificationStatus.documentVerificationRatio}</p></div>
+              </div>
+            </div>
+
+            {/* 3. Key Clauses */}
+            <div className="rounded-2xl border border-gray-100 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-950/40">
+              <h3 className="text-xs font-black uppercase tracking-wider text-civic-700 dark:text-civic-400">3. Key Clauses</h3>
+              <div className="mt-3 space-y-3">
+                {keyClauses.map((clause) => (
+                  <div key={clause.clauseId} className="rounded-xl border border-gray-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
+                    <p className="font-bold text-slate-900 dark:text-white">{clause.title}</p>
+                    <p className="text-xs text-slate-500">Value: {clause.value || 'N/A'} | Status: {clause.status}</p>
+                    {clause.details && <p className="mt-1 text-xs text-slate-600 dark:text-slate-300 break-words">{clause.details}</p>}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 4. Detected Issues */}
+            <div className="rounded-2xl border border-gray-100 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-950/40">
+              <h3 className="text-xs font-black uppercase tracking-wider text-civic-700 dark:text-civic-400">4. Detected Issues</h3>
+              {detectedIssues.length === 0 ? (
+                <p className="mt-2 text-xs font-bold text-green-700 dark:text-green-300">✓ No issues detected — all checks passed.</p>
+              ) : (
+                <div className="mt-3 space-y-2">
+                  {detectedIssues.map((issue) => (
+                    <div key={issue.issueId} className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-800 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300">
+                      <span className="font-bold">[{issue.severity}] {issue.category}:</span> {issue.description}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 5. Reviewer Notes */}
+            <div className="rounded-2xl border border-gray-100 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-950/40">
+              <h3 className="text-xs font-black uppercase tracking-wider text-civic-700 dark:text-civic-400">5. Reviewer Notes</h3>
+              {reviewerNotes.length === 0 ? (
+                <p className="mt-2 text-xs italic text-slate-500">No reviewer notes provided.</p>
+              ) : (
+                <div className="mt-3 space-y-2">
+                  {reviewerNotes.map((note) => (
+                    <div key={note.noteId} className="rounded-xl border border-gray-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
+                      <div className="flex justify-between text-xs font-bold text-slate-500">
+                        <span>{note.authorName} ({note.role || 'OFFICER'})</span>
+                        <span>{formatDate(note.createdAt)}</span>
+                      </div>
+                      <p className="mt-1 text-xs italic text-slate-700 dark:text-slate-300">"{note.content}"</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 6. Review Summary */}
+            <div className="rounded-2xl border border-civic-100 bg-civic-50/60 p-4 dark:border-civic-500/20 dark:bg-civic-500/10">
+              <h3 className="text-xs font-black uppercase tracking-wider text-civic-800 dark:text-civic-300">6. Review Summary</h3>
+              <p className="mt-2 text-xs font-bold text-slate-900 dark:text-white">Outcome: {reviewSummary.overallOutcome} | Risk: {reviewSummary.riskLevel}</p>
+              <p className="mt-1 text-xs text-slate-700 dark:text-slate-300">{reviewSummary.recommendation}</p>
+              <p className="mt-2 text-xs leading-relaxed text-slate-600 dark:text-slate-400">{reviewSummary.summaryText}</p>
+            </div>
+          </div>
+
+          {/* Footer Buttons */}
+          <div className="mt-6 flex flex-col gap-2 border-t border-gray-100 pt-4 sm:flex-row sm:justify-end dark:border-slate-800">
+            <Button variant="outline" onClick={onClose}>Close</Button>
+            <Button
+              variant="primary"
+              icon={downloading ? FiRefreshCw : FiDownload}
+              disabled={downloading}
+              onClick={() => onDownloadPdf(legalRecordInfo.recordId)}
+            >
+              {downloading ? "Generating PDF..." : "Download PDF"}
+            </Button>
           </div>
         </motion.div>
       </motion.div>
@@ -335,6 +497,10 @@ export default function ChildAdoptionManagement() {
   const [toasts, setToasts] = useState([]);
   const [history, setHistory] = useState(initialHistory);
   const [completedRecord, setCompletedRecord] = useState(null);
+  const [downloadingBriefId, setDownloadingBriefId] = useState(null);
+  const [previewBriefData, setPreviewBriefData] = useState(null);
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  const [previewingId, setPreviewingId] = useState(null);
 
   const { register, handleSubmit, reset } = useForm({
     defaultValues: { parentId: "", childId: "" },
@@ -355,6 +521,45 @@ export default function ChildAdoptionManagement() {
     window.setTimeout(() => {
       setToasts((current) => current.filter((toast) => toast.id !== id));
     }, 2600);
+  };
+
+  const handleDownloadBrief = async (targetId) => {
+    if (downloadingBriefId) return;
+    const recordIdToDownload = targetId || adoptionId;
+    if (!recordIdToDownload) {
+      addToast("Invalid adoption record ID");
+      return;
+    }
+
+    try {
+      setDownloadingBriefId(recordIdToDownload);
+      await adoptionsService.generateBrief(recordIdToDownload, 'pdf');
+      addToast("Brief downloaded successfully.");
+    } catch (error) {
+      addToast(error.message || "Unable to generate review brief.");
+    } finally {
+      setDownloadingBriefId(null);
+    }
+  };
+
+  const handlePreviewBrief = async (targetId) => {
+    if (previewingId) return;
+    const recordIdToFetch = targetId || adoptionId;
+    if (!recordIdToFetch) {
+      addToast("Invalid adoption record ID");
+      return;
+    }
+
+    try {
+      setPreviewingId(recordIdToFetch);
+      const data = await adoptionsService.getBriefData(recordIdToFetch);
+      setPreviewBriefData(data);
+      setPreviewModalOpen(true);
+    } catch (error) {
+      addToast(error.message || "Unable to load review brief preview.");
+    } finally {
+      setPreviewingId(null);
+    }
   };
 
   const uploadedCount = documents.filter((doc) => doc.status === "Verified").length;
@@ -467,10 +672,15 @@ export default function ChildAdoptionManagement() {
         adoptionId={adoptionId}
         onClose={() => setModalOpen(false)}
         completedRecord={completedRecord}
-        onDownloadBrief={async () => {
-          try { await adoptionsService.generateBrief(adoptionId); }
-          catch (e) { addToast("Failed to generate brief"); }
-        }}
+        onDownloadBrief={handleDownloadBrief}
+        downloadingBriefId={downloadingBriefId}
+      />
+      <LegalBriefPreviewModal
+        open={previewModalOpen}
+        briefData={previewBriefData}
+        onClose={() => setPreviewModalOpen(false)}
+        onDownloadPdf={handleDownloadBrief}
+        downloading={!!downloadingBriefId}
       />
 
       <motion.div variants={container} initial="hidden" animate="show" className="space-y-6">
@@ -640,7 +850,22 @@ export default function ChildAdoptionManagement() {
                   <SectionCard title="Actions" icon={FiArchive}>
                     <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                       <Button variant="secondary" icon={FiSave} onClick={() => addToast("Draft Saved")}>Save Draft</Button>
-                      <Button variant="outline" icon={FiFileText} onClick={() => addToast("Adoption Report Generated")}>Generate Adoption Report</Button>
+                      <Button
+                        variant="outline"
+                        icon={previewingId === adoptionId ? FiRefreshCw : FiEye}
+                        disabled={!!previewingId}
+                        onClick={() => handlePreviewBrief(adoptionId)}
+                      >
+                        {previewingId === adoptionId ? "Loading Preview..." : "Preview Review Brief"}
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        icon={downloadingBriefId === adoptionId ? FiRefreshCw : FiDownload}
+                        disabled={!!downloadingBriefId}
+                        onClick={() => handleDownloadBrief(adoptionId)}
+                      >
+                        {downloadingBriefId === adoptionId ? "Generating Brief..." : "Download Review Brief"}
+                      </Button>
                       <Button icon={FiCheckCircle} onClick={completeAdoption}>{user?.role === 'admin' ? 'Approve & Complete Adoption' : 'Submit for Admin Approval'}</Button>
                     </div>
                   </SectionCard>
@@ -672,11 +897,24 @@ export default function ChildAdoptionManagement() {
                           <td className="table-td">{entry.nextCheck}</td>
                           <td className="table-td">
                             <div className="flex items-center gap-2">
-                              <Button variant="ghost" icon={FiArrowRight} className="min-h-[32px] px-3 py-1.5">Open</Button>
-                              <Button variant="secondary" icon={FiDownload} className="min-h-[32px] px-3 py-1.5" onClick={async () => {
-                                try { await adoptionsService.generateBrief(entry.id); }
-                                catch (e) { addToast("Failed to generate brief"); }
-                              }}>Brief</Button>
+                              <Button
+                                variant="ghost"
+                                icon={previewingId === entry.id ? FiRefreshCw : FiEye}
+                                disabled={!!previewingId}
+                                className="min-h-[32px] px-3 py-1.5"
+                                onClick={() => handlePreviewBrief(entry.id)}
+                              >
+                                {previewingId === entry.id ? "Loading..." : "Preview"}
+                              </Button>
+                              <Button
+                                variant="secondary"
+                                icon={downloadingBriefId === entry.id ? FiRefreshCw : FiDownload}
+                                disabled={!!downloadingBriefId}
+                                className="min-h-[32px] px-3 py-1.5"
+                                onClick={() => handleDownloadBrief(entry.id)}
+                              >
+                                {downloadingBriefId === entry.id ? "Generating..." : "Download Brief"}
+                              </Button>
                             </div>
                           </td>
                         </tr>
