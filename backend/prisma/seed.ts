@@ -184,14 +184,79 @@ async function main() {
       cctvInstalled: false,
       numberOfCameras: 0,
       gpsTrackingAvailable: false,
-      emergencyAlertEnabled: false,
-      biometricAttendanceEnabled: false,
+      emergencyContactPerson: 'Ananya Rao',
+      emergencyContactMobile: '+919876543299',
+      facilities: ['CCTV Security', 'AI Vision Attendance', 'Biometric Gate', 'Medical Room'],
       complianceScore: 45,
       isActive: true,
       isVerified: false,
     },
   });
   console.log('   ✅ Orphanage 3:', orphanage3.name, '- Compliance:', orphanage3.complianceScore + '%');
+
+  // Orphanage 4: Under Inspection Profile (Demonstrates Pending / Under Inspection State & Facilities Search)
+  const orphanage4 = await prisma.orphanage.upsert({
+    where: { registrationNumber: 'REG-TN-2024-004' },
+    update: {},
+    create: {
+      code: 'ORP-TN-2024-001',
+      name: 'Vatsalya Ashram Chennai',
+      organizationType: OrganizationType.NGO,
+      status: OrphanageStatus.UNDER_INSPECTION,
+      registrationNumber: 'REG-TN-2024-004',
+      governmentLicenseNumber: 'GOV-TN-2021-99887',
+      establishmentDate: new Date('2021-05-12'),
+      officialEmail: 'contact@vatsalyaashram.org',
+      phone: '+914422334455',
+      addressLine1: '78 Anna Salai, Guindy',
+      city: 'Chennai',
+      district: 'Chennai',
+      state: 'Tamil Nadu',
+      pincode: '600032',
+      country: 'India',
+      totalCapacity: 60,
+      currentOccupancy: 35,
+      cctvInstalled: true,
+      emergencyContactPerson: 'Rajesh Kannan',
+      emergencyContactMobile: '+919876500044',
+      bankName: 'Indian Overseas Bank',
+      bankAccountNumber: '60012345678904',
+      bankIfscCode: 'IOBA0001234',
+      facilities: ['CCTV Security', 'Computer Lab', 'Playground', 'Medical Bay'],
+      complianceScore: 78,
+      isActive: true,
+      isVerified: false,
+    },
+  });
+  console.log('   ✅ Orphanage 4:', orphanage4.name, '- Status:', orphanage4.status);
+
+  // Orphanage 5: Suspended Profile with Missing Data Flags
+  const orphanage5 = await prisma.orphanage.upsert({
+    where: { registrationNumber: 'REG-WB-2024-005' },
+    update: {},
+    create: {
+      code: 'ORP-WB-2024-001',
+      name: 'Shanti Nivas Shelter Kolkata',
+      organizationType: OrganizationType.TRUST,
+      status: OrphanageStatus.SUSPENDED,
+      registrationNumber: 'REG-WB-2024-005',
+      establishmentDate: new Date('2022-11-01'),
+      officialEmail: 'info@shantinivas.org',
+      phone: '+913344556677',
+      addressLine1: '12 Park Street',
+      city: 'Kolkata',
+      district: 'Kolkata',
+      state: 'West Bengal',
+      pincode: '700016',
+      country: 'India',
+      totalCapacity: 40,
+      currentOccupancy: 20,
+      complianceScore: 30,
+      isActive: false,
+      isVerified: false,
+    },
+  });
+  console.log('   ✅ Orphanage 5:', orphanage5.name, '- Status:', orphanage5.status, '(Missing Data Demo)');
 
   // ═══════════════════════════════════════════════════════════════
   // 3. ORPHANAGE USERS & STAFF LINKS
