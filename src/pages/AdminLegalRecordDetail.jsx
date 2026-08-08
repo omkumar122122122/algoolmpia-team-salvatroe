@@ -203,7 +203,7 @@ export default function AdminLegalRecordDetail() {
   };
 
   const addToast = (message) => {
-    const toastId = `${Date.now()}-${message}`;
+    const toastId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}-${message}`;
     setToasts((current) => [...current, { id: toastId, message }]);
     window.setTimeout(() => {
       setToasts((current) => current.filter((t) => t.id !== toastId));

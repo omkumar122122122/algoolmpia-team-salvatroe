@@ -641,7 +641,276 @@ async function main() {
     },
   });
 
-  console.log('   ✅ Demo Legal Record (DEMO-LR-001) seeded successfully!');
+  // ═══════════════════════════════════════════════════════════════
+  // 8. 4 DISTINCT LEGAL REVIEW DEMO RECORDS (FOR ADMIN & JUDGES)
+  // ═══════════════════════════════════════════════════════════════
+  console.log('📜 Seeding 4 Realistic Legal Review Demo Records (VERIFIED, REQUIRES REVIEW, FLAGGED, PENDING)...');
+
+  // Create 4 dedicated demo children to avoid unique constraint on childId
+  const demoChild1 = await prisma.child.upsert({
+    where: { childCode: 'CHILD-DEMO-001' },
+    update: {},
+    create: {
+      childCode: 'CHILD-DEMO-001',
+      firstName: 'Rahul',
+      lastName: 'Verma',
+      dateOfBirth: new Date('2018-05-12'),
+      gender: ChildGender.MALE,
+      admissionDate: new Date('2024-01-10'),
+      orphanageId: orphanage1.id,
+    },
+  });
+
+  const demoChild2 = await prisma.child.upsert({
+    where: { childCode: 'CHILD-DEMO-002' },
+    update: {},
+    create: {
+      childCode: 'CHILD-DEMO-002',
+      firstName: 'Ananya',
+      lastName: 'Sen',
+      dateOfBirth: new Date('2019-08-20'),
+      gender: ChildGender.FEMALE,
+      admissionDate: new Date('2024-03-15'),
+      orphanageId: orphanage1.id,
+    },
+  });
+
+  const demoChild3 = await prisma.child.upsert({
+    where: { childCode: 'CHILD-DEMO-003' },
+    update: {},
+    create: {
+      childCode: 'CHILD-DEMO-003',
+      firstName: 'Kabir',
+      lastName: 'Mehta',
+      dateOfBirth: new Date('2020-02-01'),
+      gender: ChildGender.MALE,
+      admissionDate: new Date('2024-06-01'),
+      orphanageId: orphanage2.id,
+    },
+  });
+
+  const demoChild4 = await prisma.child.upsert({
+    where: { childCode: 'CHILD-DEMO-004' },
+    update: {},
+    create: {
+      childCode: 'CHILD-DEMO-004',
+      firstName: 'Diya',
+      lastName: 'Patel',
+      dateOfBirth: new Date('2021-11-10'),
+      gender: ChildGender.FEMALE,
+      admissionDate: new Date('2025-01-10'),
+      orphanageId: orphanage2.id,
+    },
+  });
+
+  const REQUIRED_DOCS = [
+    'CARA_CLEARANCE',
+    'COURT_ORDER',
+    'POLICE_CLEARANCE',
+    'PARENT_KYC',
+    'FINANCIAL_PROOFS',
+    'MEDICAL_FITNESS',
+    'CHILD_BIRTH_CERT',
+    'HOME_STUDY_REPORT',
+  ];
+
+  // ---------------------------------------------------------------
+  // DEMO-LEGAL-001: VERIFIED / COMPLETED (0 Issues)
+  // ---------------------------------------------------------------
+  const demo1 = await prisma.adoptionRecord.upsert({
+    where: { id: 'DEMO-LEGAL-001' },
+    update: {
+      status: AdoptionStatus.COMPLETED,
+      courtName: 'District Family Court, Central New Delhi',
+      courtCaseNumber: 'FC/ADO/2026/0492',
+      courtOrderDate: new Date('2026-01-20'),
+      adoptionCertNumber: 'CERT-DELHI-2026-88',
+      caraReferenceNumber: 'CARA-REG-2026-ND-8899',
+      caraStatus: 'APPROVED',
+      reviewNotes: 'All required clauses and supporting documentation were reviewed. No material compliance issues were identified.',
+    },
+    create: {
+      id: 'DEMO-LEGAL-001',
+      childId: demoChild1.id,
+      adoptiveParentId: parent.id,
+      status: AdoptionStatus.COMPLETED,
+      legalProcessStart: new Date('2026-01-01'),
+      completedDate: new Date('2026-02-01'),
+      courtName: 'District Family Court, Central New Delhi',
+      courtCaseNumber: 'FC/ADO/2026/0492',
+      courtOrderDate: new Date('2026-01-20'),
+      adoptionCertNumber: 'CERT-DELHI-2026-88',
+      caraReferenceNumber: 'CARA-REG-2026-ND-8899',
+      caraStatus: 'APPROVED',
+      reviewedById: admin.id,
+      reviewNotes: 'All required clauses and supporting documentation were reviewed. No material compliance issues were identified.',
+    },
+  });
+
+  for (const docType of REQUIRED_DOCS) {
+    await prisma.adoptionDocument.upsert({
+      where: {
+        adoptionRecordId_documentType: { adoptionRecordId: demo1.id, documentType: docType },
+      },
+      update: { isVerified: true },
+      create: {
+        adoptionRecordId: demo1.id,
+        documentType: docType,
+        fileName: `${docType.toLowerCase()}_verified.pdf`,
+        originalName: `${docType}.pdf`,
+        mimeType: 'application/pdf',
+        fileSize: 210000,
+        storagePath: `/uploads/adoptions/${docType.toLowerCase()}_verified.pdf`,
+        isVerified: true,
+        uploadedById: admin.id,
+        verifiedById: admin.id,
+        verifiedAt: new Date('2026-01-15'),
+      },
+    });
+  }
+
+  // ---------------------------------------------------------------
+  // DEMO-LEGAL-002: REQUIRES REVIEW (Medium Severity Issues)
+  // ---------------------------------------------------------------
+  const demo2 = await prisma.adoptionRecord.upsert({
+    where: { id: 'DEMO-LEGAL-002' },
+    update: {
+      status: AdoptionStatus.UNDER_REVIEW,
+      courtName: 'District Family Court, New Delhi',
+      courtCaseNumber: 'FC/ADO/2026/0512',
+      caraReferenceNumber: 'CARA-REG-2026-ND-9012',
+      caraStatus: 'UNDER_PROCESS',
+      reviewNotes: 'Additional clarification on post-adoption review schedule and financial income statement is required before final verification.',
+    },
+    create: {
+      id: 'DEMO-LEGAL-002',
+      childId: demoChild2.id,
+      adoptiveParentId: readmeParent.id,
+      status: AdoptionStatus.UNDER_REVIEW,
+      legalProcessStart: new Date('2026-01-10'),
+      courtName: 'District Family Court, New Delhi',
+      courtCaseNumber: 'FC/ADO/2026/0512',
+      caraReferenceNumber: 'CARA-REG-2026-ND-9012',
+      caraStatus: 'UNDER_PROCESS',
+      reviewedById: admin.id,
+      reviewNotes: 'Additional clarification on post-adoption review schedule and financial income statement is required before final verification.',
+    },
+  });
+
+  for (let i = 0; i < REQUIRED_DOCS.length; i++) {
+    const docType = REQUIRED_DOCS[i];
+    const isVerified = i < 5; // 5 verified, 3 unverified
+    await prisma.adoptionDocument.upsert({
+      where: {
+        adoptionRecordId_documentType: { adoptionRecordId: demo2.id, documentType: docType },
+      },
+      update: { isVerified },
+      create: {
+        adoptionRecordId: demo2.id,
+        documentType: docType,
+        fileName: `${docType.toLowerCase()}_doc.pdf`,
+        originalName: `${docType}.pdf`,
+        mimeType: 'application/pdf',
+        fileSize: 180000,
+        storagePath: `/uploads/adoptions/${docType.toLowerCase()}_doc.pdf`,
+        isVerified,
+        uploadedById: admin.id,
+        ...(isVerified ? { verifiedById: admin.id, verifiedAt: new Date('2026-01-20') } : {}),
+      },
+    });
+  }
+
+  // ---------------------------------------------------------------
+  // DEMO-LEGAL-003: FLAGGED (High / Critical Severity Issues)
+  // ---------------------------------------------------------------
+  const demo3 = await prisma.adoptionRecord.upsert({
+    where: { id: 'DEMO-LEGAL-003' },
+    update: {
+      status: AdoptionStatus.CANCELLED,
+      cancellationReason: 'Required guardian verification information is incomplete and police clearance flagged address discrepancy.',
+      courtName: 'District Family Court, South Delhi',
+      courtCaseNumber: 'FC/ADO/2026/0633',
+      caraReferenceNumber: 'CARA-REG-2026-ND-9344',
+      caraStatus: 'REJECTED',
+      reviewNotes: 'Record requires additional documentation, guardian verification, and manual police review before re-evaluation.',
+    },
+    create: {
+      id: 'DEMO-LEGAL-003',
+      childId: demoChild3.id,
+      adoptiveParentId: parent.id,
+      status: AdoptionStatus.CANCELLED,
+      cancellationReason: 'Required guardian verification information is incomplete and police clearance flagged address discrepancy.',
+      legalProcessStart: new Date('2026-01-05'),
+      cancelledDate: new Date('2026-02-02'),
+      courtName: 'District Family Court, South Delhi',
+      courtCaseNumber: 'FC/ADO/2026/0633',
+      caraReferenceNumber: 'CARA-REG-2026-ND-9344',
+      caraStatus: 'REJECTED',
+      reviewedById: admin.id,
+      reviewNotes: 'Record requires additional documentation, guardian verification, and manual police review before re-evaluation.',
+    },
+  });
+
+  for (let i = 0; i < REQUIRED_DOCS.length; i++) {
+    const docType = REQUIRED_DOCS[i];
+    const isVerified = i < 2; // 2 verified, 6 unverified
+    await prisma.adoptionDocument.upsert({
+      where: {
+        adoptionRecordId_documentType: { adoptionRecordId: demo3.id, documentType: docType },
+      },
+      update: { isVerified },
+      create: {
+        adoptionRecordId: demo3.id,
+        documentType: docType,
+        fileName: `${docType.toLowerCase()}_flagged.pdf`,
+        originalName: `${docType}.pdf`,
+        mimeType: 'application/pdf',
+        fileSize: 195000,
+        storagePath: `/uploads/adoptions/${docType.toLowerCase()}_flagged.pdf`,
+        isVerified,
+        uploadedById: admin.id,
+      },
+    });
+  }
+
+  // ---------------------------------------------------------------
+  // DEMO-LEGAL-004: PENDING (Newly Submitted Record)
+  // ---------------------------------------------------------------
+  const demo4 = await prisma.adoptionRecord.upsert({
+    where: { id: 'DEMO-LEGAL-004' },
+    update: {
+      status: AdoptionStatus.ELIGIBLE,
+    },
+    create: {
+      id: 'DEMO-LEGAL-004',
+      childId: demoChild4.id,
+      adoptiveParentId: readmeParent.id,
+      status: AdoptionStatus.ELIGIBLE,
+      legalProcessStart: new Date('2026-02-05'),
+    },
+  });
+
+  for (const docType of REQUIRED_DOCS) {
+    await prisma.adoptionDocument.upsert({
+      where: {
+        adoptionRecordId_documentType: { adoptionRecordId: demo4.id, documentType: docType },
+      },
+      update: { isVerified: false },
+      create: {
+        adoptionRecordId: demo4.id,
+        documentType: docType,
+        fileName: `${docType.toLowerCase()}_pending.pdf`,
+        originalName: `${docType}.pdf`,
+        mimeType: 'application/pdf',
+        fileSize: 150000,
+        storagePath: `/uploads/adoptions/${docType.toLowerCase()}_pending.pdf`,
+        isVerified: false,
+        uploadedById: admin.id,
+      },
+    });
+  }
+
+  console.log('   ✅ 4 Demo Legal Records (DEMO-LEGAL-001..004) seeded successfully!');
 
   // ═══════════════════════════════════════════════════════════════
   // SUMMARY

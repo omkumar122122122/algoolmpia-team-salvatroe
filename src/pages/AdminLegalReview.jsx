@@ -197,32 +197,14 @@ export default function AdminLegalReview() {
       
       // Ensure DEMO-LR-001 is present for judges
       const hasDemo = list.some((r) => r.id === "DEMO-LR-001");
-      let finalRecords = list;
-      if (!hasDemo) {
-        finalRecords = [
-          {
-            id: "DEMO-LR-001",
-            child: { name: "Priya Sharma", childCode: "CHILD-SUN-002" },
-            parent: { name: "Vikram Sharma" },
-            orphanage: { name: "Sunshine Children Home" },
-            status: "COMPLETED",
-            courtName: "District Family Court, Central New Delhi",
-            courtCaseNumber: "FC/ADO/2026/0492",
-            caraReferenceNumber: "CARA-REG-2026-ND-8899",
-            completedDate: new Date().toISOString(),
-            isDemo: true,
-          },
-          ...list,
-        ];
-      }
-      setRecords(finalRecords);
+      setRecords(list);
     } catch (err) {
-      addToast("Failed to load legal records from backend.");
-      // Fallback demo record if server offline
+      addToast("Failed to load legal records from backend. Start backend server (npm run start:dev in backend/).");
+      // Fallback demo records if server offline
       setRecords([
         {
-          id: "DEMO-LR-001",
-          child: { name: "Priya Sharma", childCode: "CHILD-SUN-002" },
+          id: "DEMO-LEGAL-001",
+          child: { name: "Rahul Verma", childCode: "CHILD-DEMO-001" },
           parent: { name: "Vikram Sharma" },
           orphanage: { name: "Sunshine Children Home" },
           status: "COMPLETED",
@@ -232,6 +214,36 @@ export default function AdminLegalReview() {
           completedDate: new Date().toISOString(),
           isDemo: true,
         },
+        {
+          id: "DEMO-LEGAL-002",
+          child: { name: "Ananya Sen", childCode: "CHILD-DEMO-002" },
+          parent: { name: "Priya Sharma" },
+          orphanage: { name: "Sunshine Children Home" },
+          status: "UNDER_REVIEW",
+          courtName: "District Family Court, New Delhi",
+          courtCaseNumber: "FC/ADO/2026/0512",
+          caraReferenceNumber: "CARA-REG-2026-ND-9012",
+          isDemo: true,
+        },
+        {
+          id: "DEMO-LEGAL-003",
+          child: { name: "Kabir Mehta", childCode: "CHILD-DEMO-003" },
+          parent: { name: "Vikram Sharma" },
+          orphanage: { name: "Hope Foundation Mumbai" },
+          status: "CANCELLED",
+          courtName: "District Family Court, South Delhi",
+          courtCaseNumber: "FC/ADO/2026/0633",
+          caraReferenceNumber: "CARA-REG-2026-ND-9344",
+          isDemo: true,
+        },
+        {
+          id: "DEMO-LEGAL-004",
+          child: { name: "Diya Patel", childCode: "CHILD-DEMO-004" },
+          parent: { name: "Priya Sharma" },
+          orphanage: { name: "Hope Foundation Mumbai" },
+          status: "ELIGIBLE",
+          isDemo: true,
+        },
       ]);
     } finally {
       setLoading(false);
@@ -239,10 +251,10 @@ export default function AdminLegalReview() {
   };
 
   const addToast = (message) => {
-    const id = `${Date.now()}-${message}`;
-    setToasts((current) => [...current, { id, message }]);
+    const uniqueId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}-${message}`;
+    setToasts((current) => [...current, { id: uniqueId, message }]);
     window.setTimeout(() => {
-      setToasts((current) => current.filter((toast) => toast.id !== id));
+      setToasts((current) => current.filter((toast) => toast.id !== uniqueId));
     }, 2600);
   };
 
