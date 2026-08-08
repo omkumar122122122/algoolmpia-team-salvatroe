@@ -10,6 +10,10 @@ import {
   UseGuards,
   UseInterceptors,
   UploadedFile,
+<<<<<<< HEAD
+=======
+  UploadedFiles,
+>>>>>>> origin/rohit
   HttpCode,
   HttpStatus,
   BadRequestException,
@@ -22,7 +26,11 @@ import {
   ApiBody,
   ApiConsumes,
 } from '@nestjs/swagger';
+<<<<<<< HEAD
 import { FileInterceptor } from '@nestjs/platform-express';
+=======
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
+>>>>>>> origin/rohit
 import { memoryStorage } from 'multer';
 import { ParentsService } from './services/parents.service';
 import {
@@ -355,6 +363,55 @@ async registerParent(@Body() dto: RegisterParentDto) {
     );
   }
 
+<<<<<<< HEAD
+=======
+  @Post(':id/documents/batch')
+  @Roles(Role.ADMIN, Role.PARENT)
+  @UseInterceptors(
+    FilesInterceptor('files', 10, {
+      storage: memoryStorage(),
+      limits: { fileSize: MAX_DOCUMENT_SIZE_BYTES },
+      fileFilter: (_req, file, cb) => {
+        if (ALLOWED_DOCUMENT_MIME_TYPES.includes(file.mimetype)) {
+          cb(null, true);
+        } else {
+          cb(
+            new BadRequestException(
+              `Invalid file type. Allowed: ${ALLOWED_DOCUMENT_MIME_TYPES.join(', ')}`,
+            ) as any,
+            false,
+          );
+        }
+      },
+    }),
+  )
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Upload multiple parent identity / supporting documents in batch' })
+  uploadBatchDocuments(
+    @Param('id') id: string,
+    @Body('documentTypes') documentTypes: string | string[],
+    @UploadedFiles() files: Express.Multer.File[],
+    @CurrentUser('sub') userId: string,
+    @CurrentUser('role') userRole: Role,
+  ) {
+    if (!files || files.length === 0) {
+      throw new BadRequestException('At least one file is required');
+    }
+    const typesArray = Array.isArray(documentTypes)
+      ? documentTypes
+      : typeof documentTypes === 'string'
+        ? documentTypes.split(',')
+        : [];
+    return this.parentsService.uploadBatchDocuments(
+      id,
+      files,
+      typesArray,
+      userId,
+      userRole,
+    );
+  }
+
+>>>>>>> origin/rohit
   @Patch(':id/documents/:docId')
   @Roles(Role.ADMIN)
   @HttpCode(HttpStatus.OK)

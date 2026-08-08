@@ -3,6 +3,10 @@ import {
   Get,
   Post,
   Put,
+<<<<<<< HEAD
+=======
+  Patch,
+>>>>>>> origin/rohit
   Delete,
   Body,
   Param,
@@ -26,6 +30,11 @@ import { OrphanagesService } from './orphanages.service';
 import { CreateOrphanageDto } from './dto/create-orphanage.dto';
 import { UpdateOrphanageDto } from './dto/update-orphanage.dto';
 import { OrphanageQueryDto } from './dto/orphanage-query.dto';
+<<<<<<< HEAD
+=======
+import { ResetOrphanagePasswordDto } from './dto/reset-orphanage-password.dto';
+import { ToggleOrphanageStatusDto } from './dto/toggle-orphanage-status.dto';
+>>>>>>> origin/rohit
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -74,7 +83,11 @@ export class OrphanagesController {
   }
 
   @Get()
+<<<<<<< HEAD
   @Roles(Role.ADMIN, Role.PARENT)
+=======
+  @Roles(Role.ADMIN, Role.PARENT, Role.DONOR)
+>>>>>>> origin/rohit
   @ApiOperation({ summary: 'Get all orphanages with filters and pagination' })
   @ApiResponse({
     status: 200,
@@ -85,7 +98,11 @@ export class OrphanagesController {
   }
 
   @Get('approved')
+<<<<<<< HEAD
   @Roles(Role.PARENT)
+=======
+  @Roles(Role.PARENT, Role.DONOR)
+>>>>>>> origin/rohit
   @ApiOperation({ summary: 'Get approved orphanages available for parent visit requests' })
   @ApiResponse({
     status: 200,
@@ -230,4 +247,39 @@ export class OrphanagesController {
   ) {
     return this.orphanagesService.recalculateCompliance(id, req.user.id);
   }
+<<<<<<< HEAD
+=======
+
+  @Patch(':id/reset-password')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Reset password for orphanage user account' })
+  @ApiResponse({
+    status: 200,
+    description: 'Orphanage password reset successfully',
+  })
+  @ApiResponse({ status: 404, description: 'Orphanage not found' })
+  async resetPassword(
+    @Param('id') id: string,
+    @Body() dto: ResetOrphanagePasswordDto,
+    @Req() req: any,
+  ) {
+    return this.orphanagesService.resetPassword(id, dto, req.user.id);
+  }
+
+  @Patch(':id/toggle-status')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Enable or disable orphanage account access' })
+  @ApiResponse({
+    status: 200,
+    description: 'Orphanage account status updated successfully',
+  })
+  @ApiResponse({ status: 404, description: 'Orphanage not found' })
+  async toggleStatus(
+    @Param('id') id: string,
+    @Body() dto: ToggleOrphanageStatusDto,
+    @Req() req: any,
+  ) {
+    return this.orphanagesService.toggleStatus(id, dto, req.user.id);
+  }
+>>>>>>> origin/rohit
 }

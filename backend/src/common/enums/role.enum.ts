@@ -8,6 +8,10 @@ export enum Role {
   PARENT = 'PARENT',
   SOCIAL_WORKER = 'SOCIAL_WORKER',
   GUEST = 'GUEST',
+<<<<<<< HEAD
+=======
+  DONOR = 'DONOR',
+>>>>>>> origin/rohit
 }
 
 /**

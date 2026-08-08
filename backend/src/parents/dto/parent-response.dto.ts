@@ -199,6 +199,15 @@ export class KYCStatusDto {
   @ApiProperty({ required: false })
   lastKycDate?: Date;
 
+<<<<<<< HEAD
+=======
+  @ApiProperty({ required: false })
+  kycApprovedAt?: Date;
+
+  @ApiProperty({ required: false })
+  kycRejectionReason?: string;
+
+>>>>>>> origin/rohit
   @ApiProperty({ required: false, deprecated: true, description: 'Deprecated - KYC is a one-time process with no renewal' })
   nextKycDue?: Date;
 

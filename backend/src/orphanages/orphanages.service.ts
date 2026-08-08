@@ -11,6 +11,11 @@ import { EncryptionService } from '../common/services/encryption.service';
 import { CreateOrphanageDto } from './dto/create-orphanage.dto';
 import { UpdateOrphanageDto } from './dto/update-orphanage.dto';
 import { OrphanageQueryDto } from './dto/orphanage-query.dto';
+<<<<<<< HEAD
+=======
+import { ResetOrphanagePasswordDto } from './dto/reset-orphanage-password.dto';
+import { ToggleOrphanageStatusDto } from './dto/toggle-orphanage-status.dto';
+>>>>>>> origin/rohit
 import { Prisma, OrphanageStaffRole, ChildGender, OrganizationType, Role, OrphanageStatus } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 
@@ -24,6 +29,15 @@ export class OrphanagesService {
   ) {}
 
   async create(dto: CreateOrphanageDto, files: any, userId: string) {
+<<<<<<< HEAD
+=======
+    if (dto.confirmPassword && dto.password !== dto.confirmPassword) {
+      throw new BadRequestException('Password and confirm password do not match');
+    }
+
+    const cleanEmail = dto.officialEmail.toLowerCase().trim();
+
+>>>>>>> origin/rohit
     // Check for duplicate registration number
     const existingByRegNum = await this.prisma.orphanage.findUnique({
       where: { registrationNumber: dto.registrationNumber },
@@ -33,16 +47,26 @@ export class OrphanagesService {
     }
 
     // Check for duplicate email
+<<<<<<< HEAD
     const existingByEmail = await this.prisma.orphanage.findUnique({
       where: { officialEmail: dto.officialEmail },
+=======
+    const existingByEmail = await this.prisma.orphanage.findFirst({
+      where: { officialEmail: { equals: cleanEmail, mode: 'insensitive' } },
+>>>>>>> origin/rohit
     });
     if (existingByEmail) {
       throw new ConflictException('Official email already exists');
     }
 
     // Check for duplicate user email (for login)
+<<<<<<< HEAD
     const existingUserEmail = await this.prisma.user.findUnique({
       where: { email: dto.officialEmail },
+=======
+    const existingUserEmail = await this.prisma.user.findFirst({
+      where: { email: { equals: cleanEmail, mode: 'insensitive' } },
+>>>>>>> origin/rohit
     });
     if (existingUserEmail) {
       throw new ConflictException('Email already exists as user account');
@@ -114,12 +138,31 @@ export class OrphanagesService {
       const bcryptRounds = 12;
       const hashedPassword = await bcrypt.hash(dto.password, bcryptRounds);
       
+<<<<<<< HEAD
       const user = await tx.user.create({
         data: {
           email: dto.officialEmail,
           firstName: dto.name || 'Orphanage',
           lastName: 'Admin',
           phone: dto.phone,
+=======
+      let userPhone: string | null = dto.phone ? dto.phone.trim() : null;
+      if (userPhone) {
+        const existingPhoneUser = await tx.user.findFirst({
+          where: { phone: userPhone },
+        });
+        if (existingPhoneUser) {
+          userPhone = null;
+        }
+      }
+
+      const user = await tx.user.create({
+        data: {
+          email: cleanEmail,
+          firstName: dto.name || 'Orphanage',
+          lastName: 'Admin',
+          phone: userPhone,
+>>>>>>> origin/rohit
           password: hashedPassword,
           role: Role.ORPHANAGE,
           isEmailVerified: true, // Auto-verified for orphanage accounts
@@ -130,6 +173,10 @@ export class OrphanagesService {
       // Create orphanage
       const orphanage = await tx.orphanage.create({
         data: {
+<<<<<<< HEAD
+=======
+          userId: user.id,
+>>>>>>> origin/rohit
           code,
           name: dto.name,
           organizationType: dto.organizationType as OrganizationType,
@@ -138,7 +185,11 @@ export class OrphanagesService {
           establishmentDate: dto.establishmentDate
             ? new Date(dto.establishmentDate)
             : null,
+<<<<<<< HEAD
           officialEmail: dto.officialEmail,
+=======
+          officialEmail: cleanEmail,
+>>>>>>> origin/rohit
           phone: dto.phone,
           alternativePhone: dto.alternativeContact,
           website: dto.website,
@@ -769,19 +820,42 @@ export class OrphanagesService {
     });
   }
 
+<<<<<<< HEAD
   // Dashboard methods for ORPHANAGE role
   async getDashboardStats(userId: string) {
     // Find orphanage for this user
+=======
+  private async resolveOrphanageIdForUser(userId: string): Promise<{ orphanageId: string; complianceScore: number }> {
+    const orphanage = await this.prisma.orphanage.findFirst({
+      where: { userId, deletedAt: null },
+      select: { id: true, complianceScore: true },
+    });
+    if (orphanage) {
+      return { orphanageId: orphanage.id, complianceScore: orphanage.complianceScore };
+    }
+>>>>>>> origin/rohit
     const staffRecord = await this.prisma.orphanageStaff.findFirst({
       where: { userId, isActive: true },
       include: { orphanage: true },
     });
+<<<<<<< HEAD
 
     if (!staffRecord) {
       throw new NotFoundException('No orphanage found for this user');
     }
 
     const orphanageId = staffRecord.orphanageId;
+=======
+    if (staffRecord?.orphanageId) {
+      return { orphanageId: staffRecord.orphanageId, complianceScore: staffRecord.orphanage?.complianceScore ?? 85 };
+    }
+    throw new NotFoundException('No orphanage found for this user account');
+  }
+
+  // Dashboard methods for ORPHANAGE role
+  async getDashboardStats(userId: string) {
+    const { orphanageId } = await this.resolveOrphanageIdForUser(userId);
+>>>>>>> origin/rohit
 
     // Get children count
     const inCare = await this.prisma.child.count({
@@ -834,7 +908,11 @@ export class OrphanagesService {
 
     const pendingVisits = await this.prisma.visitRequest.count({
       where: {
+<<<<<<< HEAD
         orphanageId,
+=======
+        orphanageId: orphanageId ?? undefined,
+>>>>>>> origin/rohit
         status: 'PENDING',
       },
     });
@@ -855,6 +933,7 @@ export class OrphanagesService {
   }
 
   async getMyChildren(userId: string, limit: number = 5) {
+<<<<<<< HEAD
     // Find orphanage for this user
     const staffRecord = await this.prisma.orphanageStaff.findFirst({
       where: { userId, isActive: true },
@@ -867,6 +946,13 @@ export class OrphanagesService {
     const children = await this.prisma.child.findMany({
       where: {
         orphanageId: staffRecord.orphanageId,
+=======
+    const { orphanageId } = await this.resolveOrphanageIdForUser(userId);
+
+    const children = await this.prisma.child.findMany({
+      where: {
+        orphanageId,
+>>>>>>> origin/rohit
         currentStatus: 'ACTIVE',
         deletedAt: null,
       },
@@ -889,7 +975,11 @@ export class OrphanagesService {
 
     const total = await this.prisma.child.count({
       where: {
+<<<<<<< HEAD
         orphanageId: staffRecord.orphanageId,
+=======
+        orphanageId,
+>>>>>>> origin/rohit
         currentStatus: 'ACTIVE',
         deletedAt: null,
       },
@@ -912,6 +1002,7 @@ export class OrphanagesService {
   }
 
   async getSafetyChart(userId: string) {
+<<<<<<< HEAD
     // Find orphanage for this user
     const staffRecord = await this.prisma.orphanageStaff.findFirst({
       where: { userId, isActive: true },
@@ -921,6 +1012,9 @@ export class OrphanagesService {
     if (!staffRecord) {
       throw new NotFoundException('No orphanage found for this user');
     }
+=======
+    const { complianceScore } = await this.resolveOrphanageIdForUser(userId);
+>>>>>>> origin/rohit
 
     // Mock data for now - in production, aggregate from historical data
     return {
@@ -934,7 +1028,11 @@ export class OrphanagesService {
           },
           {
             label: 'Compliance',
+<<<<<<< HEAD
             data: [78, 81, 84, 86, 88, staffRecord.orphanage.complianceScore],
+=======
+            data: [78, 81, 84, 86, 88, complianceScore ?? 85],
+>>>>>>> origin/rohit
           },
         ],
       },
@@ -1218,4 +1316,131 @@ export class OrphanagesService {
       };
     });
   }
+<<<<<<< HEAD
+=======
+
+  async resetPassword(
+    orphanageId: string,
+    dto: ResetOrphanagePasswordDto,
+    adminId: string,
+  ) {
+    const orphanage = await this.prisma.orphanage.findFirst({
+      where: { id: orphanageId, deletedAt: null },
+      select: { id: true, userId: true, officialEmail: true },
+    });
+
+    if (!orphanage) {
+      throw new NotFoundException('Orphanage not found');
+    }
+
+    let targetUserId = orphanage.userId;
+    if (!targetUserId) {
+      const user = await this.prisma.user.findFirst({
+        where: { email: { equals: orphanage.officialEmail, mode: 'insensitive' } },
+        select: { id: true },
+      });
+      if (user) {
+        targetUserId = user.id;
+        await this.prisma.orphanage.update({
+          where: { id: orphanageId },
+          data: { userId: user.id },
+        });
+      }
+    }
+
+    if (!targetUserId) {
+      throw new NotFoundException('No user account found for this orphanage');
+    }
+
+    const bcryptRounds = 12;
+    const hashedPassword = await bcrypt.hash(dto.newPassword, bcryptRounds);
+
+    await this.prisma.user.update({
+      where: { id: targetUserId },
+      data: {
+        password: hashedPassword,
+        passwordChangedAt: new Date(),
+      },
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        userId: adminId,
+        action: 'RESET_ORPHANAGE_PASSWORD',
+        resource: 'Orphanage',
+        resourceId: orphanageId,
+        success: true,
+      },
+    });
+
+    return {
+      success: true,
+      message: 'Orphanage password reset successfully',
+    };
+  }
+
+  async toggleStatus(
+    orphanageId: string,
+    dto: ToggleOrphanageStatusDto,
+    adminId: string,
+  ) {
+    const orphanage = await this.prisma.orphanage.findFirst({
+      where: { id: orphanageId, deletedAt: null },
+    });
+
+    if (!orphanage) {
+      throw new NotFoundException('Orphanage not found');
+    }
+
+    return await this.prisma.$transaction(async (tx) => {
+      const updatedOrphanage = await tx.orphanage.update({
+        where: { id: orphanageId },
+        data: {
+          isActive: dto.isActive,
+          status: dto.isActive ? OrphanageStatus.ACTIVE : OrphanageStatus.SUSPENDED,
+        },
+      });
+
+      let targetUserId = orphanage.userId;
+      if (!targetUserId) {
+        const user = await tx.user.findFirst({
+          where: { email: { equals: orphanage.officialEmail, mode: 'insensitive' } },
+          select: { id: true },
+        });
+        if (user) {
+          targetUserId = user.id;
+          await tx.orphanage.update({
+            where: { id: orphanageId },
+            data: { userId: user.id },
+          });
+        }
+      }
+
+      if (targetUserId) {
+        await tx.user.update({
+          where: { id: targetUserId },
+          data: { isActive: dto.isActive },
+        });
+      }
+
+      await tx.auditLog.create({
+        data: {
+          userId: adminId,
+          action: dto.isActive
+            ? 'ENABLE_ORPHANAGE_ACCOUNT'
+            : 'DISABLE_ORPHANAGE_ACCOUNT',
+          resource: 'Orphanage',
+          resourceId: orphanageId,
+          success: true,
+        },
+      });
+
+      return {
+        success: true,
+        message: `Orphanage account ${dto.isActive ? 'enabled' : 'disabled'} successfully`,
+        data: updatedOrphanage,
+      };
+    });
+  }
+>>>>>>> origin/rohit
 }

@@ -199,10 +199,43 @@ export const visitRequestsService = {
   },
 
   /**
+<<<<<<< HEAD
+=======
+   * Respond to a reschedule request (Parent)
+   */
+  async respondReschedule(id, { action, reason } = {}) {
+    const response = await apiClient.patch(`/visit-requests/${id}/respond-reschedule`, {
+      action,
+      reason,
+    });
+    return unwrap(response);
+  },
+
+  /**
+>>>>>>> origin/rohit
    * Mark visit as completed
    */
   async complete(id, feedbackData) {
     const response = await apiClient.patch(`/visit-requests/${id}/complete`, feedbackData);
     return unwrap(response);
   },
+<<<<<<< HEAD
+=======
+
+  /**
+   * Check in a visit request on visit day
+   */
+  async checkIn(id) {
+    const response = await apiClient.patch(`/visit-requests/${id}/check-in`);
+    return unwrap(response);
+  },
+
+  /**
+   * Mark visit request as No Show
+   */
+  async noShow(id, { reason } = {}) {
+    const response = await apiClient.patch(`/visit-requests/${id}/no-show`, { reason });
+    return unwrap(response);
+  },
+>>>>>>> origin/rohit
 };

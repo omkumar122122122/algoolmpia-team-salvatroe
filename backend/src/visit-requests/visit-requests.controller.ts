@@ -27,6 +27,11 @@ import {
   RequestDocumentsDto,
   CompleteVisitDto,
   CancelVisitRequestDto,
+<<<<<<< HEAD
+=======
+  RespondRescheduleDto,
+  NoShowVisitDto,
+>>>>>>> origin/rohit
   VisitRequestResponseDto,
   VisitRequestListResponseDto,
   VisitRequestListItemDto,
@@ -77,11 +82,16 @@ export class VisitRequestsController {
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
+<<<<<<< HEAD
   async findAll(
+=======
+  findAll(
+>>>>>>> origin/rohit
     @Query() queryDto: QueryVisitRequestDto,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') userRole: Role,
   ): Promise<VisitRequestListResponseDto> {
+<<<<<<< HEAD
     console.log('[VisitRequestsController] === ENTERING GET /visit-requests ===');
     console.log('[VisitRequestsController] Query DTO:', queryDto);
     console.log('[VisitRequestsController] User ID:', userId, 'Role:', userRole);
@@ -98,6 +108,9 @@ export class VisitRequestsController {
       console.error('Stack:', e?.stack);
       throw e;
     }
+=======
+    return this.visitRequestsService.findAll(queryDto, userId, userRole);
+>>>>>>> origin/rohit
   }
 
   @Get('my-requests')
@@ -280,4 +293,61 @@ export class VisitRequestsController {
   ) {
     return this.visitRequestsService.cancel(id, cancelDto, userId);
   }
+<<<<<<< HEAD
+=======
+
+  @Patch(':id/respond-reschedule')
+  @Roles(Role.PARENT)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Respond to a proposed reschedule request (PARENT only)' })
+  @ApiResponse({ status: 200, description: 'Reschedule response processed successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid input or request cannot be updated' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - not your request' })
+  @ApiResponse({ status: 404, description: 'Visit request not found' })
+  @ApiBody({ type: RespondRescheduleDto })
+  async respondReschedule(
+    @Param('id') id: string,
+    @Body() respondDto: RespondRescheduleDto,
+    @CurrentUser('sub') userId: string,
+  ) {
+    return this.visitRequestsService.respondReschedule(id, respondDto, userId);
+  }
+
+  @Patch(':id/check-in')
+  @Roles(Role.ADMIN, Role.ORPHANAGE)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Check in a parent on visit day' })
+  @ApiResponse({ status: 200, description: 'Check in recorded successfully' })
+  @ApiResponse({ status: 400, description: 'Request cannot be checked in' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 404, description: 'Visit request not found' })
+  async checkIn(
+    @Param('id') id: string,
+    @CurrentUser('sub') userId: string,
+    @CurrentUser('role') userRole: Role,
+  ) {
+    return this.visitRequestsService.checkIn(id, userId, userRole);
+  }
+
+  @Patch(':id/no-show')
+  @Roles(Role.ADMIN, Role.ORPHANAGE)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Mark visit request as No Show' })
+  @ApiResponse({ status: 200, description: 'No show recorded successfully' })
+  @ApiResponse({ status: 400, description: 'Request status invalid' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 404, description: 'Visit request not found' })
+  @ApiBody({ type: NoShowVisitDto })
+  async noShow(
+    @Param('id') id: string,
+    @Body() noShowDto: NoShowVisitDto,
+    @CurrentUser('sub') userId: string,
+    @CurrentUser('role') userRole: Role,
+  ) {
+    return this.visitRequestsService.noShow(id, noShowDto, userId, userRole);
+  }
+>>>>>>> origin/rohit
 }

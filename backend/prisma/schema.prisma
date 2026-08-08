@@ -58,6 +58,10 @@ model User {
   orphanageStaff               OrphanageStaff[]
   otpTokens                    OtpToken[]
   reviewedDocuments            ParentDocument[]     @relation("DocumentReviewedBy")
+<<<<<<< HEAD
+=======
+  reviewedKycSubmissions       KycSubmission[]      @relation("KycSubmissionReviewedBy")
+>>>>>>> origin/rohit
   parentProfile                Parent?
   verifiedParents              Parent[]             @relation("VerifiedBy")
   initiatedPoliceVer           PoliceVerification[] @relation("PoliceVerInitiatedBy")
@@ -65,6 +69,10 @@ model User {
   refreshTokens                RefreshToken[]
   reportRequests               ReportExport[]       @relation("ReportRequestedBy")
   socialWorkerProfile          SocialWorkerProfile?
+<<<<<<< HEAD
+=======
+  orphanageProfile            Orphanage?           @relation("OrphanageUser")
+>>>>>>> origin/rohit
   systemSettings               SystemSetting[]      @relation("SettingUpdatedBy")
   performedTrustLogs           TrustScoreLog[]      @relation("TrustScorePerformedBy")
   reviewedVisitRequests        VisitRequest[]       @relation("VisitRequestReviewedBy")
@@ -73,6 +81,10 @@ model User {
   startedSessions              AttendanceSession[]       @relation("SessionStartedBy")
   reviewedManualVerifications   ManualVerificationQueue[] @relation("ManualVerificationReviewer")
   resolvedUnknownFaces         UnknownFaceEvent[]        @relation("UnknownFaceResolver")
+<<<<<<< HEAD
+=======
+  donorProfile                 Donor?
+>>>>>>> origin/rohit
 
   @@index([role])
   @@index([isActive])
@@ -206,6 +218,11 @@ model Orphanage {
   createdAt                    DateTime           @default(now())
   updatedAt                    DateTime           @updatedAt
   deletedAt                    DateTime?
+<<<<<<< HEAD
+=======
+  userId                       String?            @unique
+  user                         User?              @relation("OrphanageUser", fields: [userId], references: [id], onDelete: SetNull)
+>>>>>>> origin/rohit
   alerts                       Alert[]            @relation("OrphanageAlerts")
   children                     Child[]
   licenses                     OrphanageLicense[]
@@ -226,7 +243,11 @@ model Orphanage {
 
 model OrphanageStaff {
   id          String             @id @default(uuid())
+<<<<<<< HEAD
   orphanageId String
+=======
+  orphanageId String?
+>>>>>>> origin/rohit
   userId      String
   role        OrphanageStaffRole @default(OTHER)
   designation String?
@@ -237,7 +258,11 @@ model OrphanageStaff {
   notes       String?
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
+<<<<<<< HEAD
   orphanage   Orphanage          @relation(fields: [orphanageId], references: [id], onDelete: Cascade)
+=======
+  orphanage   Orphanage?         @relation(fields: [orphanageId], references: [id], onDelete: Cascade)
+>>>>>>> origin/rohit
   user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([orphanageId, userId])
@@ -340,12 +365,20 @@ model Parent {
   guardianHistories        GuardianHistory[]        @relation("LinkedParent")
   addresses                ParentAddress[]
   documents                ParentDocument[]
+<<<<<<< HEAD
+=======
+  kycSubmissions           KycSubmission[]
+>>>>>>> origin/rohit
   references               ParentReference[]
   user                     User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
   verifiedBy               User?                    @relation("VerifiedBy", fields: [verifiedById], references: [id])
   policeVerification       PoliceVerification?
   trustScoreLogs           TrustScoreLog[]
   visitRequests            VisitRequest[]
+<<<<<<< HEAD
+=======
+  assessments              Assessment[]
+>>>>>>> origin/rohit
 
   @@index([userId])
   @@index([verificationStatus])
@@ -426,6 +459,10 @@ model FamilyMember {
 model ParentDocument {
   id              String         @id @default(uuid())
   parentId        String
+<<<<<<< HEAD
+=======
+  submissionId    String?
+>>>>>>> origin/rohit
   documentType    DocumentType
   status          DocumentStatus @default(UPLOADED)
   fileName        String
@@ -446,15 +483,48 @@ model ParentDocument {
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
   parent          Parent         @relation(fields: [parentId], references: [id], onDelete: Cascade)
+<<<<<<< HEAD
   reviewedBy      User?          @relation("DocumentReviewedBy", fields: [reviewedById], references: [id])
 
   @@index([parentId])
+=======
+  submission      KycSubmission? @relation(fields: [submissionId], references: [id], onDelete: SetNull)
+  reviewedBy      User?          @relation("DocumentReviewedBy", fields: [reviewedById], references: [id])
+
+  @@index([parentId])
+  @@index([submissionId])
+>>>>>>> origin/rohit
   @@index([documentType])
   @@index([status])
   @@index([expiryDate])
   @@map("parent_documents")
 }
 
+<<<<<<< HEAD
+=======
+model KycSubmission {
+  id              String           @id @default(uuid())
+  parentId        String
+  status          KycStatus        @default(SUBMITTED)
+  submittedAt     DateTime         @default(now())
+  reviewedAt      DateTime?
+  reviewedById    String?
+  rejectionReason String?
+  notes           String?
+  attemptNumber   Int              @default(1)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  parent          Parent           @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  reviewedBy      User?            @relation("KycSubmissionReviewedBy", fields: [reviewedById], references: [id])
+  documents       ParentDocument[]
+
+  @@index([parentId])
+  @@index([status])
+  @@map("kyc_submissions")
+}
+
+>>>>>>> origin/rohit
 model PoliceVerification {
   id                 String                   @id @default(uuid())
   parentId           String                   @unique
@@ -584,6 +654,11 @@ model Child {
   medicalHistories        MedicalHistory[]
   visitRequests           VisitRequest[]
   welfareSessions         WelfareSession[]
+<<<<<<< HEAD
+=======
+  assessmentSchedules     AssessmentSchedule[]
+  assessments             Assessment[]
+>>>>>>> origin/rohit
   suggestedVerifications       ManualVerificationQueue[] @relation("SuggestedChildVerification")
 
   @@index([childCode])
@@ -988,6 +1063,10 @@ model AdoptionRecord {
   createdAt             DateTime           @default(now())
   updatedAt             DateTime           @updatedAt
   documents             AdoptionDocument[]
+<<<<<<< HEAD
+=======
+  assessmentSchedules   AssessmentSchedule[]
+>>>>>>> origin/rohit
   adoptiveParent        Parent?            @relation(fields: [adoptiveParentId], references: [id])
   child                 Child              @relation(fields: [childId], references: [id], onDelete: Cascade)
   reviewedBy            User?              @relation("AdoptionReviewedBy", fields: [reviewedById], references: [id])
@@ -1382,6 +1461,10 @@ enum Role {
   PARENT
   SOCIAL_WORKER
   GUEST
+<<<<<<< HEAD
+=======
+  DONOR
+>>>>>>> origin/rohit
 }
 
 enum OtpPurpose {
@@ -1692,9 +1775,22 @@ enum OrphanageStatus {
 
 enum OrphanageStaffRole {
   ADMINISTRATOR
+<<<<<<< HEAD
   CARETAKER
   TEACHER
   MEDICAL_STAFF
+=======
+  ADMIN
+  SUPER_ADMIN
+  MODERATOR
+  GOVERNMENT_OFFICER
+  CARETAKER
+  TEACHER
+  MEDICAL_STAFF
+  DOCTOR
+  NURSE
+  CLEANER
+>>>>>>> origin/rohit
   SECURITY_GUARD
   COUNSELOR
   SOCIAL_WORKER
@@ -1878,3 +1974,147 @@ enum ReportStatus {
   COMPLETED
   FAILED
 }
+<<<<<<< HEAD
+=======
+
+model AssessmentSchedule {
+  id                 String           @id @default(uuid())
+  adoptionId         String
+  childId            String
+  nextAssessmentDate DateTime
+  frequencyMonths    Int              @default(6)
+  completed          Boolean          @default(false)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  adoption           AdoptionRecord   @relation(fields: [adoptionId], references: [id], onDelete: Cascade)
+  child              Child            @relation(fields: [childId], references: [id], onDelete: Cascade)
+  assessments        Assessment[]
+
+  @@index([childId])
+  @@index([adoptionId])
+  @@index([nextAssessmentDate])
+  @@index([completed])
+  @@map("assessment_schedules")
+}
+
+model Assessment {
+  id             String              @id @default(uuid())
+  scheduleId     String?
+  childId        String
+  parentId       String
+  assessmentDate DateTime            @default(now())
+  faceScore      Float               @default(0)
+  voiceScore     Float               @default(0)
+  answerScore    Float               @default(0)
+  behaviorScore  Float               @default(0)
+  overallRisk    RiskLevel           @default(LOW)
+  summary        String?
+  recommendation String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  schedule       AssessmentSchedule? @relation(fields: [scheduleId], references: [id])
+  child          Child               @relation(fields: [childId], references: [id], onDelete: Cascade)
+  parent         Parent              @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  answers        Answer[]
+
+  @@index([childId])
+  @@index([parentId])
+  @@index([scheduleId])
+  @@index([overallRisk])
+  @@map("assessments")
+}
+
+model Question {
+  id        String   @id @default(uuid())
+  minAge    Int      @default(0)
+  maxAge    Int      @default(16)
+  category  String   @default("WELFARE")
+  question  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  answers   Answer[]
+
+  @@index([minAge, maxAge])
+  @@index([category])
+  @@map("assessment_questions")
+}
+
+model Answer {
+  id           String     @id @default(uuid())
+  assessmentId String
+  questionId   String
+  answer       String
+  sentiment    String?
+  confidence   Float?
+  createdAt    DateTime   @default(now())
+  assessment   Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  question     Question   @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([assessmentId])
+  @@index([questionId])
+  @@map("assessment_answers")
+}
+
+model Donor {
+  id               String            @id @default(uuid())
+  userId           String?           @unique
+  user             User?             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName         String
+  email            String            @unique
+  mobileNumber     String
+  address          String
+  city             String
+  password         String
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  donations        Donation[]
+  donationRequests DonationRequest[]
+
+  @@map("donors")
+}
+
+model Donation {
+  id            String   @id @default(uuid())
+  donorId       String
+  donor         Donor    @relation(fields: [donorId], references: [id], onDelete: Cascade)
+  amount        Float
+  category      String   // Education, Healthcare, Nutrition, General
+  paymentMethod String   // UPI, Credit Card, Bank Transfer, NetBanking
+  status        String   @default("COMPLETED")
+  transactionId String
+  message       String?
+  orphanageId   String?
+  createdAt     DateTime @default(now())
+
+  @@index([donorId])
+  @@map("donations")
+}
+
+model DonationRequest {
+  id              String                  @id @default(uuid())
+  donorId         String
+  donor           Donor                   @relation(fields: [donorId], references: [id], onDelete: Cascade)
+  orphanageId     String
+  donationType    String                  // Food, Clothes, Books, School Supplies, Toys, Medicine, Furniture, Other
+  quantity        Int
+  preferredDate   DateTime
+  preferredTime   String                  // e.g. "10:00 AM"
+  message         String?
+  status          DonationRequestStatus   @default(PENDING)
+  rejectionReason String?
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  @@index([donorId])
+  @@index([orphanageId])
+  @@map("donation_requests")
+}
+
+enum DonationRequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  COMPLETED
+  CANCELLED
+}
+>>>>>>> origin/rohit

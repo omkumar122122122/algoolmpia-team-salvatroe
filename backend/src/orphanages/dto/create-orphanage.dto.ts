@@ -286,11 +286,23 @@ export class CreateOrphanageDto {
   panCard?: string;
 
   // Section 13: Login Credentials - Password for orphanage account
+<<<<<<< HEAD
   @ApiProperty({ example: 'Auto-generated password' })
+=======
+  @ApiProperty({ example: 'SecurePassword123!' })
+>>>>>>> origin/rohit
   @IsString()
   @MinLength(8)
   password: string;
 
+<<<<<<< HEAD
+=======
+  @ApiPropertyOptional({ example: 'SecurePassword123!' })
+  @IsOptional()
+  @IsString()
+  confirmPassword?: string;
+
+>>>>>>> origin/rohit
   // Section 9: Facilities (FIX-2)
   @ApiPropertyOptional({
     example: ['Medical Room', 'CCTV Surveillance', 'School'],

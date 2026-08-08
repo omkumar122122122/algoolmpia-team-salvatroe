@@ -16,6 +16,10 @@ export interface TriggerAlertPayload {
   sourceService?: string;
   /** Optional: user ID that triggered the alert (if known) */
   createdById?: string;
+<<<<<<< HEAD
+=======
+  metadata?: any;
+>>>>>>> origin/rohit
 }
 
 @Injectable()
@@ -66,6 +70,10 @@ export class AlertsGenerationService {
           parentId: payload.parentId,
           orphanageId: payload.orphanageId,
           createdById: payload.createdById,
+<<<<<<< HEAD
+=======
+          metadata: payload.metadata,
+>>>>>>> origin/rohit
         },
       });
 

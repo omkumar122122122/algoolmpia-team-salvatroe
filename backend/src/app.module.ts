@@ -1,6 +1,10 @@
 import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+<<<<<<< HEAD
+=======
+import { ScheduleModule } from '@nestjs/schedule';
+>>>>>>> origin/rohit
 import { APP_GUARD } from '@nestjs/core';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
@@ -12,12 +16,21 @@ import { StaffModule } from './staff/staff.module';
 import { OrphanagesModule } from './orphanages/orphanages.module';
 import { VisitRequestsModule } from './visit-requests/visit-requests.module';
 import { AdoptionsModule } from './adoptions/adoptions.module';
+<<<<<<< HEAD
+=======
+import { PostAdoptionMonitoringModule } from './post-adoption-monitoring/post-adoption-monitoring.module';
+>>>>>>> origin/rohit
 import { AlertsModule } from './alerts/alerts.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { ChatModule } from './chat/chat.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { ReportsModule } from './reports/reports.module';
 import { SettingsModule } from './settings/settings.module';
+<<<<<<< HEAD
+=======
+import { DonorsModule } from './donors/donors.module';
+import { DonationRequestsModule } from './donation-requests/donation-requests.module';
+>>>>>>> origin/rohit
 import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
 import { SecurityHeadersMiddleware } from './common/middleware/security-headers.middleware';
 
@@ -35,6 +48,12 @@ import emailConfig from './config/email.config';
       cache: true,
     }),
 
+<<<<<<< HEAD
+=======
+    // Schedule module for daily cron automation
+    ScheduleModule.forRoot(),
+
+>>>>>>> origin/rohit
     // Rate limiting — global throttle guard
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
@@ -68,12 +87,21 @@ import emailConfig from './config/email.config';
     OrphanagesModule,
     VisitRequestsModule,
     AdoptionsModule,
+<<<<<<< HEAD
+=======
+    PostAdoptionMonitoringModule,
+>>>>>>> origin/rohit
     AlertsModule,
     NotificationsModule,
     ChatModule,
     DashboardModule,
     ReportsModule,
     SettingsModule,
+<<<<<<< HEAD
+=======
+    DonorsModule,
+    DonationRequestsModule,
+>>>>>>> origin/rohit
   ],
   providers: [
     // Apply throttle guard globally

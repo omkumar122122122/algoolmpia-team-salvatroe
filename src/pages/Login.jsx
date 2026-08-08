@@ -293,6 +293,11 @@ function LoginForm({
   register, handleSubmit, formState, selectedRole, setSelectedRole,
   error, loading, showPassword, setShowPassword, rememberMe, setRememberMe, onSignup, onSubmit,
 }) {
+<<<<<<< HEAD
+=======
+  const navigate = useNavigate();
+
+>>>>>>> origin/rohit
   return (
     <div className="space-y-5">
 
@@ -427,7 +432,11 @@ function LoginForm({
         </motion.button>
 
         {/* Bottom Hyperlink: Apply for registration */}
+<<<<<<< HEAD
         <div className="pt-2 text-center">
+=======
+        <div className="pt-2 text-center flex flex-col gap-1.5 items-center">
+>>>>>>> origin/rohit
           <button
             type="button"
             onClick={onSignup}
@@ -435,6 +444,16 @@ function LoginForm({
           >
             New adoptive parent? <span className="font-semibold text-[#2563EB] underline">Apply for registration</span>
           </button>
+<<<<<<< HEAD
+=======
+          <button
+            type="button"
+            onClick={() => navigate('/donor/login')}
+            className="text-xs font-medium text-slate-500 hover:text-[#2563EB] transition-colors flex items-center gap-1 mt-0.5"
+          >
+            ❤️ <span className="font-semibold text-[#2563EB] hover:underline">Donate Now</span>
+          </button>
+>>>>>>> origin/rohit
         </div>
 
         {/* Card Footer Security Tag */}

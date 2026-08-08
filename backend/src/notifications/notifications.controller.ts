@@ -60,7 +60,11 @@ export class NotificationsController {
   }
 
   @Get()
+<<<<<<< HEAD
   @Roles(Role.ADMIN, Role.ORPHANAGE, Role.PARENT, Role.SOCIAL_WORKER)
+=======
+  @Roles(Role.ADMIN, Role.ORPHANAGE, Role.PARENT, Role.SOCIAL_WORKER, Role.DONOR)
+>>>>>>> origin/rohit
   @ApiOperation({ summary: 'Get user\'s notifications with pagination and filters' })
   @ApiResponse({
     status: 200,
@@ -76,7 +80,11 @@ export class NotificationsController {
   }
 
   @Get('unread-count')
+<<<<<<< HEAD
   @Roles(Role.ADMIN, Role.ORPHANAGE, Role.PARENT, Role.SOCIAL_WORKER)
+=======
+  @Roles(Role.ADMIN, Role.ORPHANAGE, Role.PARENT, Role.SOCIAL_WORKER, Role.DONOR)
+>>>>>>> origin/rohit
   @ApiOperation({ summary: 'Get unread notifications count' })
   @ApiResponse({
     status: 200,
@@ -91,7 +99,11 @@ export class NotificationsController {
   }
 
   @Get(':id')
+<<<<<<< HEAD
   @Roles(Role.ADMIN, Role.ORPHANAGE, Role.PARENT, Role.SOCIAL_WORKER)
+=======
+  @Roles(Role.ADMIN, Role.ORPHANAGE, Role.PARENT, Role.SOCIAL_WORKER, Role.DONOR)
+>>>>>>> origin/rohit
   @ApiOperation({ summary: 'Get notification by ID' })
   @ApiResponse({
     status: 200,
@@ -109,7 +121,11 @@ export class NotificationsController {
   }
 
   @Patch(':id/read')
+<<<<<<< HEAD
   @Roles(Role.ADMIN, Role.ORPHANAGE, Role.PARENT, Role.SOCIAL_WORKER)
+=======
+  @Roles(Role.ADMIN, Role.ORPHANAGE, Role.PARENT, Role.SOCIAL_WORKER, Role.DONOR)
+>>>>>>> origin/rohit
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Mark notification as read' })
   @ApiResponse({
@@ -128,7 +144,11 @@ export class NotificationsController {
   }
 
   @Patch('read-all')
+<<<<<<< HEAD
   @Roles(Role.ADMIN, Role.ORPHANAGE, Role.PARENT, Role.SOCIAL_WORKER)
+=======
+  @Roles(Role.ADMIN, Role.ORPHANAGE, Role.PARENT, Role.SOCIAL_WORKER, Role.DONOR)
+>>>>>>> origin/rohit
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Mark all notifications as read' })
   @ApiResponse({
@@ -145,7 +165,11 @@ export class NotificationsController {
   }
 
   @Delete('clear-read/all')
+<<<<<<< HEAD
   @Roles(Role.ADMIN, Role.ORPHANAGE, Role.PARENT, Role.SOCIAL_WORKER)
+=======
+  @Roles(Role.ADMIN, Role.ORPHANAGE, Role.PARENT, Role.SOCIAL_WORKER, Role.DONOR)
+>>>>>>> origin/rohit
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Clear all read notifications' })
   @ApiResponse({
@@ -162,7 +186,11 @@ export class NotificationsController {
   }
 
   @Delete(':id')
+<<<<<<< HEAD
   @Roles(Role.ADMIN, Role.ORPHANAGE, Role.PARENT, Role.SOCIAL_WORKER)
+=======
+  @Roles(Role.ADMIN, Role.ORPHANAGE, Role.PARENT, Role.SOCIAL_WORKER, Role.DONOR)
+>>>>>>> origin/rohit
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Delete a notification' })
   @ApiResponse({

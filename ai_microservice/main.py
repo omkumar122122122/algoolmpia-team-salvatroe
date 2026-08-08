@@ -348,6 +348,10 @@ async def detect_face(
         print("Size: FAIL")
         print("Blur: FAIL")
         print("Brightness: FAIL")
+<<<<<<< HEAD
+=======
+        print("Stability: FAIL")
+>>>>>>> origin/rohit
         print(f"Face Width: 0")
         print(f"Face Height: 0")
         print(f"Face Area Ratio: 0")
@@ -420,6 +424,10 @@ async def detect_face(
         print("Size: FAIL")
         print("Blur: FAIL")
         print("Brightness: FAIL")
+<<<<<<< HEAD
+=======
+        print("Stability: FAIL")
+>>>>>>> origin/rohit
         print(f"Face Width: 0")
         print(f"Face Height: 0")
         print(f"Face Area Ratio: 0")
@@ -604,6 +612,10 @@ async def detect_face(
     print(f"Size: {'PASS' if size_pass else 'FAIL'} ({face_area_ratio}) [minRatio: 0.08, maxRatio: 0.35, minW: 180, minH: 220]")
     print(f"Blur: {'PASS' if blur_pass else 'FAIL'} ({blur_score}) [threshold: 80]")
     print(f"Brightness: {'PASS' if brightness_pass else 'FAIL'} ({brightness_value}) [min: 60, max: 200]")
+<<<<<<< HEAD
+=======
+    print(f"Stability: FAIL (framesStable: 0, required: 30)")
+>>>>>>> origin/rohit
     print(f"Face Width: {int(face_width)}")
     print(f"Face Height: {int(face_height)}")
     print(f"Face Area Ratio: {face_area_ratio}")
@@ -2331,12 +2343,19 @@ async def generate_master_embedding(req: Optional[EmbeddingRequest] = None):
     print(f"{processing_time_ms} ms")
     print("=" * 50)
 
+<<<<<<< HEAD
+=======
+    # ─── 11. Return ONLY the summary (never the 512-d vector) ─────────────────
+>>>>>>> origin/rohit
     return {
         "success": True,
         "phase": "6B.3",
         "masterEmbeddingCreated": True,
         "embeddingDimension": EMBEDDING_DIMENSION,
+<<<<<<< HEAD
         "masterEmbedding": [float(x) for x in master_embedding],
+=======
+>>>>>>> origin/rohit
         "validEmbeddingsUsed": valid_count,
         "outliersExcluded": outlier_count,
         "masterEmbeddingNorm": round(master_norm_after, 6),
@@ -2452,11 +2471,16 @@ async def save_to_database(req: Phase6CRequest):
             }
         )
 
+<<<<<<< HEAD
     # 3. Database Transaction & Child Record Linking
+=======
+    # 3. Database Transaction
+>>>>>>> origin/rohit
     print("Database Transaction Started")
     conn = None
     try:
         conn = psycopg2.connect(DATABASE_URL)
+<<<<<<< HEAD
 
         real_child_uuid = None
         with conn.cursor() as cur:
@@ -2536,6 +2560,56 @@ async def save_to_database(req: Phase6CRequest):
             _master_embeddings[req.childId] = master_embedding
             print(f"Child ID '{req.childId}' not yet in database. Master embedding cached in RAM for session '{store_key}'.")
 
+=======
+        # Using context manager for transaction block
+        with conn:
+            with conn.cursor() as cur:
+                # Store the array as JSON string
+                vector_json = json.dumps([float(x) for x in master_embedding])
+                
+                # Combine extra metadata into the 'notes' field per Prisma schema
+                # since BiometricData schema doesn't have exact columns for images stats
+                notes_json = json.dumps({
+                    "imagesCaptured": req.imagesCaptured,
+                    "imagesUsed": req.imagesUsed,
+                    "outliersRemoved": req.outliersRemoved,
+                    "embeddingDimension": len(master_embedding),
+                    "model": req.model,
+                    "version": req.version
+                })
+                
+                now = datetime.now(timezone.utc)
+                new_id = str(uuid.uuid4())
+
+                # BiometricType enum for face recognition in Prisma is 'FACE_RECOGNITION'
+                insert_query = """
+                INSERT INTO "biometric_data" (
+                    "id", "childId", "type", "capturedAt", "faceEncodingJson", 
+                    "faceModelVersion", "isActive", "notes", "createdAt", "updatedAt"
+                ) VALUES (
+                    %s, %s, 'FACE_RECOGNITION', %s, %s,
+                    %s, true, %s, %s, %s
+                )
+                """
+                cur.execute(
+                    insert_query,
+                    (
+                        new_id,
+                        req.childId,
+                        now,
+                        vector_json,
+                        req.version,
+                        notes_json,
+                        now,
+                        now
+                    )
+                )
+
+        print()
+        print("Embedding Stored Successfully")
+        print()
+        print("Database Transaction Committed")
+>>>>>>> origin/rohit
         print()
         print("Enrollment Completed Successfully")
         print()
@@ -3284,10 +3358,14 @@ async def generate_live_embedding(
         return {
             "success": True,
             "phase": "8A",
+<<<<<<< HEAD
             "captureAllowed": False,
             "embeddingGenerated": False,
             "liveEmbeddingGenerated": False,
             "status": "FAILED",
+=======
+            "liveEmbeddingGenerated": False,
+>>>>>>> origin/rohit
             "phaseStatus": "FAILED",
             "reason": reason
         }
@@ -3433,10 +3511,14 @@ async def generate_live_embedding(
     return {
         "success": True,
         "phase": "8A",
+<<<<<<< HEAD
         "captureAllowed": True,
         "embeddingGenerated": True,
         "liveEmbeddingGenerated": True,
         "status": "PASSED",
+=======
+        "liveEmbeddingGenerated": True,
+>>>>>>> origin/rohit
         "embeddingDimension": EMBEDDING_DIMENSION,
         "normalized": True,
         "readyForMatching": True,
@@ -3579,8 +3661,11 @@ async def load_enrolled_embeddings(req: Optional[LoadEmbeddingsRequest] = None):
         conn.close()
         return fail_response(f"Database query failed: {query_exc}")
 
+<<<<<<< HEAD
     _recognition_cache.clear()
 
+=======
+>>>>>>> origin/rohit
     total_found = len(rows)
     if total_found == 0:
         conn.close()
@@ -3592,6 +3677,11 @@ async def load_enrolled_embeddings(req: Optional[LoadEmbeddingsRequest] = None):
         return fail_response("Database contains no children")
 
     # 4. Validate and cache each record
+<<<<<<< HEAD
+=======
+    _recognition_cache.clear()
+
+>>>>>>> origin/rohit
     valid_count = 0
     invalid_count = 0
     missing_count = 0
@@ -3613,6 +3703,7 @@ async def load_enrolled_embeddings(req: Optional[LoadEmbeddingsRequest] = None):
         face_json    = row["face_encoding_json"]
 
         print(f"Child #{idx}")
+<<<<<<< HEAD
         print(f"childId: {child_id}")
         print(f"name: {child_name} ({child_code})")
         print(f"masterEmbedding exists?: {'YES' if face_json else 'NO'}")
@@ -3621,6 +3712,12 @@ async def load_enrolled_embeddings(req: Optional[LoadEmbeddingsRequest] = None):
             print("embedding length: 0")
             print("embedding dimension: 0")
             print("skip reason: No faceEncodingJson found in biometric_data for this child\n")
+=======
+        print(f"Name: {child_name} ({child_code})")
+
+        if not face_json:
+            print("Embedding: Missing\n")
+>>>>>>> origin/rohit
             missing_count += 1
             continue
 
@@ -3636,6 +3733,7 @@ async def load_enrolled_embeddings(req: Optional[LoadEmbeddingsRequest] = None):
                 raw_list = []
 
             vec = np.array(raw_list, dtype=np.float32)
+<<<<<<< HEAD
             dim = int(vec.shape[0])
             print(f"embedding length: {len(raw_list)}")
             print(f"embedding dimension: {dim}")
@@ -3648,28 +3746,50 @@ async def load_enrolled_embeddings(req: Optional[LoadEmbeddingsRequest] = None):
 
         if dim != EMBEDDING_DIMENSION:
             print(f"skip reason: Dimension mismatch ({dim} != {EMBEDDING_DIMENSION})\n")
+=======
+        except Exception as exc:
+            print(f"Embedding: Invalid (JSON parse error: {exc})\n")
+            invalid_count += 1
+            continue
+
+        dim = int(vec.shape[0])
+        if dim != EMBEDDING_DIMENSION:
+            print(f"Embedding Length: {dim} (Expected {EMBEDDING_DIMENSION})")
+            print("Embedding: Invalid (Dimension mismatch)\n")
+>>>>>>> origin/rohit
             invalid_count += 1
             continue
 
         if bool(np.isnan(vec).any()) or bool(np.isinf(vec).any()):
+<<<<<<< HEAD
             print("skip reason: Vector contains NaN or Infinity values\n")
+=======
+            print("Embedding: Invalid (NaN/Inf values)\n")
+>>>>>>> origin/rohit
             invalid_count += 1
             continue
 
         l2_norm_before = float(np.linalg.norm(vec))
         if l2_norm_before < _EPSILON:
+<<<<<<< HEAD
             print("skip reason: Vector L2 norm is zero\n")
+=======
+            print("Embedding: Invalid (Zero norm)\n")
+>>>>>>> origin/rohit
             invalid_count += 1
             continue
 
         # L2 normalize on-the-fly
         normalized_vec = vec / l2_norm_before
+<<<<<<< HEAD
         first_10_loaded = [round(float(x), 6) for x in normalized_vec[:10]]
 
         print(f"database child id: {child_id}")
         print(f"first 10 embedding values: {first_10_loaded}")
         print(f"embedding norm: {float(np.linalg.norm(normalized_vec)):.6f}")
         print(f"data type after loading: {normalized_vec.dtype}")
+=======
+>>>>>>> origin/rohit
 
         _recognition_cache[child_id] = {
             "childId":     child_id,
@@ -3680,6 +3800,10 @@ async def load_enrolled_embeddings(req: Optional[LoadEmbeddingsRequest] = None):
             "capturedAt":  captured_at,
         }
         valid_count += 1
+<<<<<<< HEAD
+=======
+        print(f"Embedding Length: {dim}")
+>>>>>>> origin/rohit
         print("Loaded Successfully\n")
 
     conn.close()
@@ -4063,6 +4187,15 @@ async def recognize_live(
             "childrenCompared": len(results),
             "comparisonTimeMs": proc_time_ms_8c
         }
+<<<<<<< HEAD
+=======
+    else:
+        # AMBIGUOUS
+        print(f"Recognition Decision ......... AMBIGUOUS MATCH")
+        print(f"Reason ....................... {reason}")
+        print(f"Ready For Attendance ......... NO")
+        print("=" * 50)
+>>>>>>> origin/rohit
         return {
             "success": True,
             "phase": "8D",
@@ -4073,6 +4206,7 @@ async def recognize_live(
             "childrenCompared": len(results),
             "comparisonTimeMs": proc_time_ms_8c
         }
+<<<<<<< HEAD
 
 
 # =============================================================================
@@ -5222,3 +5356,5 @@ async def evaluate_liveness_phase_10f(req: Phase10FLivenessRequest):
             "nextAction": "BLOCK_PIPELINE",
             "modules": modules
         }
+=======
+>>>>>>> origin/rohit

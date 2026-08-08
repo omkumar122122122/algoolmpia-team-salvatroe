@@ -176,7 +176,11 @@ export default function Navbar({ title, onMenuClick }) {
     fetchUnreadCount();
     const interval = setInterval(fetchUnreadCount, 30000);
     return () => clearInterval(interval);
+<<<<<<< HEAD
   }, []);
+=======
+  }, [user?.role]);
+>>>>>>> origin/rohit
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {

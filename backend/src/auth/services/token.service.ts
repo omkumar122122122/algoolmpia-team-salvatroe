@@ -54,19 +54,56 @@ export class TokenService {
     // Extend refresh TTL for "remember me"
     const refreshExpiresIn = options?.rememberMe ? '30d' : refreshConfig.expiresIn;
 
+<<<<<<< HEAD
     // Build payloads
     const accessPayload: JwtPayload = {
       sub: userId,
       email,
       role,
+=======
+    // Lookup associated orphanageId if role is ORPHANAGE
+    let orphanageId: string | undefined = undefined;
+    if (role === Role.ORPHANAGE) {
+      const orphanage = await this.prisma.orphanage.findFirst({
+        where: { userId, deletedAt: null },
+        select: { id: true },
+      });
+      if (orphanage) {
+        orphanageId = orphanage.id;
+      } else {
+        const staff = await this.prisma.orphanageStaff.findFirst({
+          where: { userId, isActive: true },
+          select: { orphanageId: true },
+        });
+        if (staff?.orphanageId) {
+          orphanageId = staff.orphanageId;
+        }
+      }
+    }
+
+    // Build payloads
+    const accessPayload: JwtPayload = {
+      sub: userId,
+      userId,
+      email,
+      role,
+      ...(orphanageId && { orphanageId }),
+>>>>>>> origin/rohit
       type: TOKEN_TYPE_ACCESS,
       jti: accessJti,
     };
 
     const refreshPayload: RefreshTokenPayload = {
       sub: userId,
+<<<<<<< HEAD
       email,
       role,
+=======
+      userId,
+      email,
+      role,
+      ...(orphanageId && { orphanageId }),
+>>>>>>> origin/rohit
       type: TOKEN_TYPE_REFRESH,
       jti: refreshJti,
       parentJti: options?.parentJti,

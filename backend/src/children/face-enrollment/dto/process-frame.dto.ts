@@ -3,10 +3,17 @@ import { IsString, IsNotEmpty, IsEnum, IsOptional, IsNumber, Min, Max } from 'cl
 import { FacialPoseType } from '../interfaces/face-quality.interface';
 
 export class ProcessFrameDto {
+<<<<<<< HEAD
   @ApiPropertyOptional({ example: 'child-uuid-1234' })
   @IsString()
   @IsOptional()
   childId?: string;
+=======
+  @ApiProperty({ example: 'child-uuid-1234' })
+  @IsString()
+  @IsNotEmpty()
+  childId: string;
+>>>>>>> origin/rohit
 
   @ApiProperty({ enum: FacialPoseType, example: FacialPoseType.FRONT_NEUTRAL })
   @IsEnum(FacialPoseType)

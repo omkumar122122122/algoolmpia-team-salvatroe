@@ -95,6 +95,7 @@ export const childrenService = {
    * @param {Array} capturedFrames
    * @returns {Promise<Object>}
    */
+<<<<<<< HEAD
   async completeFaceEnrollment(childId, capturedFrames, masterEmbedding) {
     const formattedFrames = (capturedFrames || []).map((frame) => ({
       childId: frame.childId || childId,
@@ -124,6 +125,13 @@ export const childrenService = {
     console.log("====================================");
 
     const response = await apiClient.post(`/children/${childId}/face-enrollment/complete`, payload);
+=======
+  async completeFaceEnrollment(childId, capturedFrames) {
+    const response = await apiClient.post(`/children/${childId}/face-enrollment/complete`, {
+      childId,
+      capturedFrames,
+    });
+>>>>>>> origin/rohit
     return unwrap(response);
   },
 

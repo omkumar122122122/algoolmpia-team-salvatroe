@@ -139,4 +139,29 @@ export const orphanagesService = {
     const response = await apiClient.get('/orphanages/dashboard/safety-chart');
     return unwrap(response);
   },
+<<<<<<< HEAD
+=======
+
+  /**
+   * Reset orphanage account password (Admin only)
+   * @param {string} id
+   * @param {string} newPassword
+   * @returns {Promise<Object>}
+   */
+  async resetPassword(id, newPassword) {
+    const response = await apiClient.patch(`/orphanages/${id}/reset-password`, { newPassword });
+    return unwrap(response);
+  },
+
+  /**
+   * Enable or disable orphanage account (Admin only)
+   * @param {string} id
+   * @param {boolean} isActive
+   * @returns {Promise<Object>}
+   */
+  async toggleStatus(id, isActive) {
+    const response = await apiClient.patch(`/orphanages/${id}/toggle-status`, { isActive });
+    return unwrap(response);
+  },
+>>>>>>> origin/rohit
 };

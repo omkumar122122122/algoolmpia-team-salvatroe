@@ -18,6 +18,11 @@ import {
   RequestDocumentsDto,
   CompleteVisitDto,
   CancelVisitRequestDto,
+<<<<<<< HEAD
+=======
+  RespondRescheduleDto,
+  NoShowVisitDto,
+>>>>>>> origin/rohit
   VisitRequestResponseDto,
   VisitRequestListResponseDto,
   VisitRequestListItemDto,
@@ -290,6 +295,7 @@ export class VisitRequestsService {
     const skip = (page - 1) * limit;
     const take = limit;
 
+<<<<<<< HEAD
     console.log('[VisitRequestsService] Executing Prisma visitRequest.count()...');
     let total = 0;
     try {
@@ -303,12 +309,16 @@ export class VisitRequestsService {
       console.error('Stack:', e?.stack);
       throw e;
     }
+=======
+    const total = await this.prisma.visitRequest.count({ where });
+>>>>>>> origin/rohit
 
     // Build orderBy
     const orderBy: Prisma.VisitRequestOrderByWithRelationInput = {
       [sortBy]: sortOrder,
     };
 
+<<<<<<< HEAD
     console.log('[VisitRequestsService] Executing Prisma visitRequest.findMany()...');
     let visitRequests: any[] = [];
     try {
@@ -369,11 +379,62 @@ export class VisitRequestsService {
       console.error('Stack:', e?.stack);
       throw e;
     }
+=======
+    const visitRequests = await this.prisma.visitRequest.findMany({
+      where,
+      include: {
+        parent: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                phone: true,
+              },
+            },
+            addresses: {
+              where: { isPrimary: true },
+              take: 1,
+            },
+            familyMembers: true,
+          },
+        },
+        orphanage: {
+          select: {
+            id: true,
+            name: true,
+            city: true,
+            state: true,
+            phone: true,
+            addressLine1: true,
+            addressLine2: true,
+          },
+        },
+        child: {
+          select: {
+            id: true,
+            childCode: true,
+            firstName: true,
+            lastName: true,
+            dateOfBirth: true,
+            approximateAge: true,
+            gender: true,
+          },
+        },
+      },
+      orderBy,
+      skip,
+      take,
+    });
+>>>>>>> origin/rohit
 
     const data: VisitRequestListItemDto[] = visitRequests.map((vr) =>
       this.mapToListItemDto(vr),
     );
 
+<<<<<<< HEAD
     console.log('[VisitRequestsService] Executing getSummaryStats()...');
     let summary: any;
     try {
@@ -391,6 +452,14 @@ export class VisitRequestsService {
       console.error('Stack:', e?.stack);
       throw e;
     }
+=======
+    // Get summary statistics
+    const summary = await this.getSummaryStats(
+      requestUserRole === Role.ORPHANAGE
+        ? await this.getUserOrphanageId(requestUserId)
+        : undefined,
+    );
+>>>>>>> origin/rohit
 
     return {
       data,
@@ -527,7 +596,13 @@ export class VisitRequestsService {
       }
     }
 
+<<<<<<< HEAD
     this.validateVisitSlot(dto.visitDate, dto.visitTime, 'Approved visit date and time must be in the future');
+=======
+    const targetDate = dto.visitDate || visitRequest.visitDate.toISOString().split('T')[0];
+    const targetTime = dto.visitTime || visitRequest.visitTime;
+    this.validateVisitSlot(targetDate, targetTime, 'Approved visit date and time must be in the future');
+>>>>>>> origin/rohit
 
     // Generate QR code if requested
     let qrCode = null;
@@ -542,10 +617,17 @@ export class VisitRequestsService {
       where: { id },
       data: {
         status: VisitRequestStatus.APPROVED,
+<<<<<<< HEAD
         visitDate: this.parseDateOnly(dto.visitDate),
         visitTime: dto.visitTime,
         visitorsCount: dto.visitorLimit ?? visitRequest.visitorsCount,
         expectedArrivalTime: dto.visitTime,
+=======
+        visitDate: this.parseDateOnly(targetDate),
+        visitTime: targetTime,
+        visitorsCount: dto.visitorLimit ?? visitRequest.visitorsCount,
+        expectedArrivalTime: targetTime,
+>>>>>>> origin/rohit
         meetingRoom: dto.meetingRoom,
         assignedStaff: dto.assignedStaff,
         instructions: dto.instructions,
@@ -687,6 +769,10 @@ export class VisitRequestsService {
     }
 
     if (
+<<<<<<< HEAD
+=======
+      visitRequest.status !== VisitRequestStatus.PENDING &&
+>>>>>>> origin/rohit
       visitRequest.status !== VisitRequestStatus.APPROVED &&
       visitRequest.status !== VisitRequestStatus.RESCHEDULED
     ) {
@@ -856,6 +942,127 @@ export class VisitRequestsService {
     return this.findOne(id, requestUserId, requestUserRole);
   }
 
+<<<<<<< HEAD
+=======
+  async checkIn(
+    id: string,
+    requestUserId: string,
+    requestUserRole: Role,
+  ): Promise<VisitRequestResponseDto> {
+    const visitRequest = await this.prisma.visitRequest.findUnique({
+      where: { id },
+    });
+
+    if (!visitRequest) {
+      throw new NotFoundException(`Visit request with ID ${id} not found`);
+    }
+
+    if (visitRequest.status !== VisitRequestStatus.APPROVED) {
+      throw new BadRequestException(
+        `Cannot check in request with status ${visitRequest.status}`,
+      );
+    }
+
+    if (requestUserRole === Role.ORPHANAGE) {
+      const userOrphanageId = await this.getUserOrphanageId(requestUserId);
+      if (visitRequest.orphanageId !== userOrphanageId) {
+        throw new ForbiddenException(
+          'You can only check in visit requests for your orphanage',
+        );
+      }
+    }
+
+    await this.prisma.visitRequest.update({
+      where: { id },
+      data: {
+        checkInTime: new Date(),
+        qrStatus: 'Checked In',
+      },
+    });
+
+    // Notify Parent
+    try {
+      const parent = await this.prisma.parent.findUnique({
+        where: { id: visitRequest.parentId },
+        select: { userId: true },
+      });
+      if (parent) {
+        await this.notificationsService.sendNotification(
+          parent.userId,
+          NotificationType.VISIT_REQUEST_UPDATE,
+          'Visit Check-In Confirmed',
+          `Your visit check-in for request ${visitRequest.requestId} has been confirmed.`,
+          { relatedEntityType: 'VisitRequest', relatedEntityId: id },
+        );
+      }
+    } catch (error) {
+      this.logger.error(`Notification failed for check-in ${id}:`, error);
+    }
+
+    this.logger.log(`Visit request ${id} checked in by user ${requestUserId}`);
+    return this.findOne(id, requestUserId, requestUserRole);
+  }
+
+  async noShow(
+    id: string,
+    dto: NoShowVisitDto,
+    requestUserId: string,
+    requestUserRole: Role,
+  ): Promise<VisitRequestResponseDto> {
+    const visitRequest = await this.prisma.visitRequest.findUnique({
+      where: { id },
+    });
+
+    if (!visitRequest) {
+      throw new NotFoundException(`Visit request with ID ${id} not found`);
+    }
+
+    if (requestUserRole === Role.ORPHANAGE) {
+      const userOrphanageId = await this.getUserOrphanageId(requestUserId);
+      if (visitRequest.orphanageId !== userOrphanageId) {
+        throw new ForbiddenException(
+          'You can only update visit requests for your orphanage',
+        );
+      }
+    }
+
+    const reason = dto.reason || 'Parent did not arrive for scheduled visit slot';
+
+    await this.prisma.visitRequest.update({
+      where: { id },
+      data: {
+        status: VisitRequestStatus.CANCELLED,
+        noShowReason: reason,
+        qrStatus: 'No Show',
+        parentNotified: true,
+        notifiedAt: new Date(),
+      },
+    });
+
+    // Notify Parent
+    try {
+      const parent = await this.prisma.parent.findUnique({
+        where: { id: visitRequest.parentId },
+        select: { userId: true },
+      });
+      if (parent) {
+        await this.notificationsService.sendNotification(
+          parent.userId,
+          NotificationType.VISIT_REQUEST_UPDATE,
+          'Visit Marked as No-Show',
+          `Your visit request ${visitRequest.requestId} was marked as No-Show. Reason: ${reason}`,
+          { relatedEntityType: 'VisitRequest', relatedEntityId: id },
+        );
+      }
+    } catch (error) {
+      this.logger.error(`Notification failed for no-show ${id}:`, error);
+    }
+
+    this.logger.log(`Visit request ${id} marked as no-show by user ${requestUserId}`);
+    return this.findOne(id, requestUserId, requestUserRole);
+  }
+
+>>>>>>> origin/rohit
   async cancel(
     id: string,
     dto: CancelVisitRequestDto,
@@ -881,7 +1088,14 @@ export class VisitRequestsService {
       throw new ForbiddenException('You can only cancel your own visit requests');
     }
 
+<<<<<<< HEAD
     if (visitRequest.status !== VisitRequestStatus.PENDING) {
+=======
+    if (
+      visitRequest.status === VisitRequestStatus.COMPLETED ||
+      visitRequest.status === VisitRequestStatus.CANCELLED
+    ) {
+>>>>>>> origin/rohit
       throw new BadRequestException(
         `Cannot cancel request with status ${visitRequest.status}`,
       );
@@ -892,14 +1106,150 @@ export class VisitRequestsService {
       data: {
         status: VisitRequestStatus.CANCELLED,
         rejectionComments: dto.cancellationReason,
+<<<<<<< HEAD
       },
     });
 
+=======
+        parentNotified: true,
+        notifiedAt: new Date(),
+      },
+    });
+
+    try {
+      const orphanage = await this.prisma.orphanage.findUnique({
+        where: { id: visitRequest.orphanageId },
+        select: { userId: true, name: true },
+      });
+
+      if (orphanage && orphanage.userId) {
+        await this.notificationsService.sendNotification(
+          orphanage.userId,
+          NotificationType.VISIT_REQUEST_UPDATE,
+          'Visit Request Cancelled',
+          `Parent cancelled visit request ${visitRequest.requestId}. Reason: ${dto.cancellationReason || 'No reason provided'}.`,
+          { relatedEntityType: 'VisitRequest', relatedEntityId: id },
+        );
+      }
+    } catch (error) {
+      this.logger.error(`Notification failed for cancelled visit ${id}:`, error);
+    }
+
+>>>>>>> origin/rohit
     this.logger.log(`Visit request ${id} cancelled by parent ${parent.id}`);
 
     return this.findOne(id, requestUserId, Role.PARENT);
   }
 
+<<<<<<< HEAD
+=======
+  async respondReschedule(
+    id: string,
+    dto: RespondRescheduleDto,
+    requestUserId: string,
+  ): Promise<VisitRequestResponseDto> {
+    const parent = await this.prisma.parent.findUnique({
+      where: { userId: requestUserId },
+      select: { id: true },
+    });
+
+    if (!parent) {
+      throw new NotFoundException('Parent profile not found');
+    }
+
+    const visitRequest = await this.prisma.visitRequest.findUnique({
+      where: { id },
+    });
+
+    if (!visitRequest) {
+      throw new NotFoundException(`Visit request with ID ${id} not found`);
+    }
+
+    if (visitRequest.parentId !== parent.id) {
+      throw new ForbiddenException('You can only respond to your own visit requests');
+    }
+
+    if (visitRequest.status !== VisitRequestStatus.RESCHEDULED) {
+      throw new BadRequestException(
+        `Cannot respond to reschedule request with status ${visitRequest.status}`,
+      );
+    }
+
+    if (dto.action === 'ACCEPT') {
+      await this.prisma.visitRequest.update({
+        where: { id },
+        data: {
+          status: VisitRequestStatus.APPROVED,
+          approvalNotes: 'Reschedule proposal accepted by parent',
+          parentNotified: true,
+          notifiedAt: new Date(),
+        },
+      });
+
+      try {
+        const orphanage = await this.prisma.orphanage.findUnique({
+          where: { id: visitRequest.orphanageId },
+          select: { userId: true, name: true },
+        });
+
+        if (orphanage && orphanage.userId) {
+          await this.notificationsService.sendNotification(
+            orphanage.userId,
+            NotificationType.VISIT_REQUEST_UPDATE,
+            'Reschedule Accepted',
+            `Parent accepted the proposed visit date for request ${visitRequest.requestId}.`,
+            { relatedEntityType: 'VisitRequest', relatedEntityId: id },
+          );
+        }
+      } catch (error) {
+        this.logger.error(`Notification failed for accept reschedule ${id}:`, error);
+      }
+
+      this.logger.log(`Visit request ${id} reschedule accepted by parent ${parent.id}`);
+    } else if (dto.action === 'REJECT') {
+      if (!dto.reason || !dto.reason.trim()) {
+        throw new BadRequestException('Reason is required when rejecting a reschedule request');
+      }
+
+      await this.prisma.visitRequest.update({
+        where: { id },
+        data: {
+          status: VisitRequestStatus.REJECTED,
+          rejectionReason: 'Reschedule Declined by Parent',
+          rejectionComments: dto.reason,
+          parentNotified: true,
+          notifiedAt: new Date(),
+        },
+      });
+
+      try {
+        const orphanage = await this.prisma.orphanage.findUnique({
+          where: { id: visitRequest.orphanageId },
+          select: { userId: true, name: true },
+        });
+
+        if (orphanage && orphanage.userId) {
+          await this.notificationsService.sendNotification(
+            orphanage.userId,
+            NotificationType.VISIT_REQUEST_UPDATE,
+            'Reschedule Declined',
+            `Parent declined the proposed visit date for request ${visitRequest.requestId}: ${dto.reason}`,
+            { relatedEntityType: 'VisitRequest', relatedEntityId: id },
+          );
+        }
+      } catch (error) {
+        this.logger.error(`Notification failed for reject reschedule ${id}:`, error);
+      }
+
+      this.logger.log(`Visit request ${id} reschedule declined by parent ${parent.id}: ${dto.reason}`);
+    } else {
+      throw new BadRequestException('Invalid action. Must be ACCEPT or REJECT');
+    }
+
+    return this.findOne(id, requestUserId, Role.PARENT);
+  }
+
+>>>>>>> origin/rohit
   async getMyRequests(
     queryDto: QueryVisitRequestDto,
     requestUserId: string,
@@ -1057,6 +1407,20 @@ export class VisitRequestsService {
   }
 
   private async getUserOrphanageId(userId: string): Promise<string> {
+<<<<<<< HEAD
+=======
+    // 1. Direct Orphanage account linkage
+    const orphanage = await this.prisma.orphanage.findFirst({
+      where: { userId, deletedAt: null },
+      select: { id: true },
+    });
+
+    if (orphanage) {
+      return orphanage.id;
+    }
+
+    // 2. Orphanage Staff linkage
+>>>>>>> origin/rohit
     const staff = await this.prisma.orphanageStaff.findFirst({
       where: {
         userId,
@@ -1067,6 +1431,7 @@ export class VisitRequestsService {
       },
     });
 
+<<<<<<< HEAD
     if (staff) {
       return staff.orphanageId;
     }
@@ -1080,6 +1445,12 @@ export class VisitRequestsService {
       return fallbackOrphanage.id;
     }
 
+=======
+    if (staff && staff.orphanageId) {
+      return staff.orphanageId;
+    }
+
+>>>>>>> origin/rohit
     throw new ForbiddenException(
       'User is not associated with any orphanage',
     );

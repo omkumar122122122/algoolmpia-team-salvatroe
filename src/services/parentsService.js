@@ -82,6 +82,21 @@ class ParentsService {
     return unwrap(response);
   }
 
+<<<<<<< HEAD
+=======
+  /** Upload multiple parent documents in batch */
+  async uploadBatchDocuments(parentId, items) {
+    const formData = new FormData();
+    items.forEach(({ file, documentType }) => {
+      formData.append('files', file);
+      formData.append('documentTypes', documentType);
+    });
+
+    const response = await apiClient.post(`/parents/${parentId}/documents/batch`, formData);
+    return unwrap(response);
+  }
+
+>>>>>>> origin/rohit
   /** Review a parent document (Admin only) */
   async reviewDocument(parentId, documentId, reviewData) {
     const response = await apiClient.patch(`/parents/${parentId}/documents/${documentId}`, reviewData);

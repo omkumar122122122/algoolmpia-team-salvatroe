@@ -57,11 +57,32 @@ export class PrismaService
   }
 
   async onModuleInit() {
+<<<<<<< HEAD
     try {
       await this.$connect();
       this.logger.log('Prisma connected to primary database');
     } catch (err) {
       this.logger.error(`Initial Prisma connection error: ${(err as Error).message}`);
+=======
+    let retries = 5;
+    let connected = false;
+    while (retries > 0 && !connected) {
+      try {
+        await this.$connect();
+        connected = true;
+        this.logger.log('Prisma connected to primary database');
+      } catch (err: any) {
+        retries--;
+        if (retries > 0) {
+          this.logger.warn(
+            `Initial Prisma connection attempt failed (Neon Serverless wake-up/cold start): ${err.message}. Retrying in 1.5s... (${retries} attempts left)`,
+          );
+          await new Promise((res) => setTimeout(res, 1500));
+        } else {
+          this.logger.error(`Initial Prisma connection error: ${err.message}`);
+        }
+      }
+>>>>>>> origin/rohit
     }
 
     // Log slow queries in development

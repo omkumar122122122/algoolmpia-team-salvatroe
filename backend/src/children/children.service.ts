@@ -592,7 +592,11 @@ export class ChildrenService {
       },
     });
 
+<<<<<<< HEAD
     if (staff) {
+=======
+    if (staff && staff.orphanageId) {
+>>>>>>> origin/rohit
       return staff.orphanageId;
     }
 

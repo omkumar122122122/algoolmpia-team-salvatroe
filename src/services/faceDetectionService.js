@@ -655,6 +655,7 @@ export async function recognizeFace(frameKey) {
 
   return data;
 }
+<<<<<<< HEAD
 
 // =============================================================================
 // PHASE 9A — ATTENDANCE VALIDATION (IN-MEMORY & DB CHECK ONLY)
@@ -1116,3 +1117,5 @@ export async function evaluateLiveness10F(frameData = {}) {
 
   return data;
 }
+=======
+>>>>>>> origin/rohit

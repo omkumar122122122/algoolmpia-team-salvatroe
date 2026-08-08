@@ -57,6 +57,24 @@ export class ChildRegistrationValidator {
       throw new BadRequestException('Chronic condition details must be provided if hasChronicCondition is true.');
     }
 
+<<<<<<< HEAD
     // 5. Note: Duplicate child names are allowed (children are uniquely identified by ID/childCode and biometric vector).
+=======
+    // 5. Duplicate Child Check (Name + DOB / Approximate Age inside target orphanage)
+    if (orphanageId) {
+      const isDuplicate = await this.childrenRepository.checkDuplicateChild({
+        firstName: dto.firstName,
+        lastName: dto.lastName,
+        dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : undefined,
+        orphanageId,
+      });
+
+      if (isDuplicate) {
+        throw new ConflictException(
+          `A child with name "${dto.firstName} ${dto.lastName || ''}".trim() is already registered in this orphanage.`
+        );
+      }
+    }
+>>>>>>> origin/rohit
   }
 }

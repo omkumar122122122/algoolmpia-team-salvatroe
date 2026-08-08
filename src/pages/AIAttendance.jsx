@@ -29,7 +29,11 @@ import Card from "../components/Card";
 import { classNames } from "../utils/formatters";
 import { useNavigate } from "react-router-dom";
 import { childrenService } from "../services/childrenService";
+<<<<<<< HEAD
 import { generateLiveEmbedding, recognizeFace, loadEnrolledEmbeddings, validateAttendance, saveAttendance, completeAttendance, detectUnknownFace10A, trackUnknownFace10B, confirmUnknownFace10C, logUnknownVisitor10D, evaluateSecurityAlert10E, evaluateLiveness10F } from "../services/faceDetectionService";
+=======
+import { generateLiveEmbedding, recognizeFace, loadEnrolledEmbeddings } from "../services/faceDetectionService";
+>>>>>>> origin/rohit
 import useFrameCapture from "../hooks/useFrameCapture";
 
 const childSeed = [];
@@ -332,6 +336,7 @@ export default function AIAttendance() {
   const [phase8AReason, setPhase8AReason] = useState("");
   const [phase8AProcessingMs, setPhase8AProcessingMs] = useState(null);
   const [phase8DResult, setPhase8DResult] = useState(null);
+<<<<<<< HEAD
   const [phase9AResult, setPhase9AResult] = useState(null);
   const [phase9BResult, setPhase9BResult] = useState(null);
   const [phase9CResult, setPhase9CResult] = useState(null);
@@ -343,6 +348,9 @@ export default function AIAttendance() {
   const [phase10FResult, setPhase10FResult] = useState(null);
   const phase8ARunningRef = useRef(false); // prevents overlapping calls
   const phase9BLockedRef = useRef(false); // locks continuous frame duplicate saves
+=======
+  const phase8ARunningRef = useRef(false); // prevents overlapping calls
+>>>>>>> origin/rohit
 
   useEffect(() => {
     const fetchRealChildren = async () => {
@@ -508,6 +516,7 @@ export default function AIAttendance() {
         setPhase8AReason(result.reason || result.status || "Adjust position");
         setPhase8AProcessingMs(result.processingTimeMs ?? null);
       } else {
+<<<<<<< HEAD
         // Phase 10F: AI Anti-Spoofing & Liveness Detection (PRE-RECOGNITION GATE)
         try {
           const livenessRes = await evaluateLiveness10F({ image: result.frameKey });
@@ -527,6 +536,9 @@ export default function AIAttendance() {
         }
 
         // Phase 8C/8D: Proceed to Face Recognition (ONLY WHEN LIVE)
+=======
+        // Phase 8C/8D
+>>>>>>> origin/rohit
         setPhase8AStatus("generating");
         setPhase8AReason("Deciding Recognition...");
         try {
@@ -536,6 +548,7 @@ export default function AIAttendance() {
           
           if (recResult.recognitionStatus === "RECOGNIZED") {
             setPhase8AStatus("ready");
+<<<<<<< HEAD
             setPhase8AReason(`Child ID: ${recResult.childId || recResult.child?.childId}`);
             setPhase8AProcessingMs(recResult.comparisonTimeMs ?? null);
 
@@ -626,6 +639,18 @@ export default function AIAttendance() {
             } catch (unkErr) {
               console.warn("Phase 10A/10B/10C/10D/10E notice:", unkErr);
             }
+=======
+            setPhase8AReason(`Child ID: ${recResult.childId}`);
+            setPhase8AProcessingMs(recResult.comparisonTimeMs ?? null);
+          } else if (recResult.recognitionStatus === "UNKNOWN_FACE") {
+            setPhase8AStatus("error");
+            setPhase8AReason("Unknown Face");
+            setPhase8AProcessingMs(recResult.comparisonTimeMs ?? null);
+          } else if (recResult.recognitionStatus === "AMBIGUOUS_MATCH") {
+            setPhase8AStatus("error");
+            setPhase8AReason("Ambiguous Match");
+            setPhase8AProcessingMs(recResult.comparisonTimeMs ?? null);
+>>>>>>> origin/rohit
           } else {
             setPhase8AStatus("error");
             setPhase8AReason("Phase 8D FAILED");
@@ -689,6 +714,7 @@ export default function AIAttendance() {
       }
 
       const liveFrame = captureLiveFrameBase64();
+<<<<<<< HEAD
 
       // Phase 10F: AI Anti-Spoofing & Liveness Detection (PRE-RECOGNITION GATE)
       try {
@@ -707,6 +733,8 @@ export default function AIAttendance() {
         console.warn("Phase 10F liveness notice:", livErr);
       }
 
+=======
+>>>>>>> origin/rohit
       const matchRes = await childrenService.recognizeFrame(currentSessionId, liveFrame);
 
       if (matchRes?.recognized && matchRes?.childName) {
@@ -736,6 +764,7 @@ export default function AIAttendance() {
         );
 
         setVerificationModal({ open: true, status: "VERIFIED", child: result });
+<<<<<<< HEAD
         markToast("Child Verified & Checked-In", `${result.name} marked Present ✅`, "success");
 
         // Phase 9A & 9B: Attendance Validation and Persistence
@@ -780,11 +809,15 @@ export default function AIAttendance() {
         } catch (valErr) {
           console.warn("Phase 9A/9B/9C error:", valErr);
         }
+=======
+        markToast("Child Verified & Checked-In", `${result.name} marked Present âœ…`, "success");
+>>>>>>> origin/rohit
       } else {
         setScanState("idle");
         setDetectedChild(null);
         setVerificationModal({ open: true, status: "NOT_RECOGNIZED", child: null });
         markToast("Face Not Recognized", "Scanned face does not match any registered child profile in the database.", "warning");
+<<<<<<< HEAD
 
         // Phase 10A, 10B & 10C Unknown Face Classification, Tracking and Presence Confirmation
         try {
@@ -813,6 +846,8 @@ export default function AIAttendance() {
         } catch (unkErr) {
           console.warn("Phase 10A/10B/10C/10D/10E notice:", unkErr);
         }
+=======
+>>>>>>> origin/rohit
       }
     } catch (err) {
       console.warn("Recognition frame API notice:", err);
@@ -914,6 +949,7 @@ export default function AIAttendance() {
     <div className="space-y-6 pb-6">
       <ToastStack toasts={toasts} onDismiss={(id) => setToasts((current) => current.filter((toast) => toast.id !== id))} phase8DResult={phase8DResult} />
 
+<<<<<<< HEAD
       {/* Phase 10F AI Anti-Spoofing & Liveness Status Card */}
       <AnimatePresence>
         {phase10FResult && (
@@ -1323,6 +1359,8 @@ export default function AIAttendance() {
         )}
       </AnimatePresence>
 
+=======
+>>>>>>> origin/rohit
       <Breadcrumb items={["Orphanage", "AI Attendance & Child Wellness"]} />
 
       {/* Header Banner Card */}

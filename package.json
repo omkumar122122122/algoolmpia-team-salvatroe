@@ -18,6 +18,10 @@
     "@vitejs/plugin-react": "^4.3.4",
     "bcryptjs": "^2.4.3",
     "chart.js": "^4.4.7",
+<<<<<<< HEAD
+=======
+    "cloudinary": "^2.10.0",
+>>>>>>> origin/rohit
     "cors": "^2.8.5",
     "dotenv": "^16.4.0",
     "express": "^4.21.3",

@@ -1,5 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
+<<<<<<< HEAD
 import { IsString, IsNotEmpty, IsArray, ValidateNested, IsOptional } from 'class-validator';
+=======
+import { IsString, IsNotEmpty, IsArray, ValidateNested } from 'class-validator';
+>>>>>>> origin/rohit
 import { Type } from 'class-transformer';
 import { ProcessFrameDto } from './process-frame.dto';
 
@@ -9,11 +13,14 @@ export class CompleteEnrollmentDto {
   @IsNotEmpty()
   childId: string;
 
+<<<<<<< HEAD
   @ApiProperty({ example: [0.012, -0.045], required: false })
   @IsOptional()
   @IsArray()
   masterEmbedding?: number[];
 
+=======
+>>>>>>> origin/rohit
   @ApiProperty({ type: [ProcessFrameDto] })
   @IsArray()
   @ValidateNested({ each: true })

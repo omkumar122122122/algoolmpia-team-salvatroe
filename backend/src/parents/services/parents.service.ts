@@ -57,7 +57,11 @@ export class ParentsService {
     private readonly prisma: PrismaService,
     private readonly documentUpload: DocumentUploadService,
     private readonly notificationsService: NotificationsService,
+<<<<<<< HEAD
   ) {}
+=======
+  ) { }
+>>>>>>> origin/rohit
 
   async create(userId: string, dto: CreateParentDto): Promise<{ id: string }> {
     const existingParent = await this.prisma.parent.findUnique({
@@ -367,6 +371,10 @@ export class ParentsService {
     const parent = await this.prisma.parent.findUnique({
       where: { userId },
       include: {
+<<<<<<< HEAD
+=======
+        documents: true,
+>>>>>>> origin/rohit
         user: {
           select: {
             id: true,
@@ -467,6 +475,15 @@ export class ParentsService {
             phone: true,
           },
         },
+<<<<<<< HEAD
+=======
+        verifiedBy: {
+          select: {
+            firstName: true,
+            lastName: true,
+          },
+        },
+>>>>>>> origin/rohit
         documents: {
           select: {
             id: true,
@@ -540,6 +557,7 @@ export class ParentsService {
     const parentName = `${parent.user.firstName} ${parent.user.lastName}`.trim();
     const parentAvatar = `${parent.user.firstName?.[0] || ''}${parent.user.lastName?.[0] || ''}`.toUpperCase();
 
+<<<<<<< HEAD
     const verificationHistory = parent.documents.map((doc) => ({
       id: doc.id,
       type: doc.documentType,
@@ -548,6 +566,62 @@ export class ParentsService {
       date: doc.reviewedAt || doc.createdAt,
       notes: doc.rejectionReason || undefined,
     }));
+=======
+    // Fetch submissions history if available
+    let submissions: any[] = [];
+    try {
+      if ((this.prisma as any).kycSubmission) {
+        submissions = await (this.prisma as any).kycSubmission.findMany({
+          where: { parentId: parent.id },
+          orderBy: { createdAt: 'desc' },
+          include: { reviewedBy: { select: { firstName: true, lastName: true } } },
+        });
+      }
+    } catch {
+      submissions = [];
+    }
+
+    const verificationHistory = submissions.length > 0
+      ? submissions.map((sub, idx) => {
+          const isLatest = idx === 0;
+          const effectiveStatus = (parent.kycStatus === 'APPROVED' && (isLatest || sub.status === 'APPROVED'))
+            ? 'APPROVED'
+            : (parent.kycStatus === 'REJECTED' && isLatest)
+            ? 'REJECTED'
+            : sub.status;
+
+          return {
+            id: sub.id,
+            attemptNumber: sub.attemptNumber,
+            type: `KYC Submission Package (Attempt #${sub.attemptNumber})`,
+            status: effectiveStatus,
+            date: sub.reviewedAt || sub.submittedAt || sub.createdAt,
+            reviewedBy: sub.reviewedBy
+              ? `${sub.reviewedBy.firstName} ${sub.reviewedBy.lastName}`
+              : parent.verifiedBy
+              ? `${parent.verifiedBy.firstName} ${parent.verifiedBy.lastName}`
+              : undefined,
+            notes:
+              sub.rejectionReason ||
+              sub.notes ||
+              (effectiveStatus === 'APPROVED'
+                ? 'Verification Granted & Approved by Administrator'
+                : effectiveStatus === 'REJECTED'
+                ? parent.kycRejectionReason || parent.rejectionReason || 'Verification Rejected'
+                : 'Package submitted for admin review'),
+          };
+        })
+      : parent.documents
+        .filter((doc) => doc.status === 'APPROVED' || doc.status === 'REJECTED')
+        .map((doc) => ({
+          id: doc.id,
+          type: doc.documentType,
+          status: doc.status,
+          fileName: doc.originalName || doc.fileName,
+          date: doc.reviewedAt || doc.createdAt,
+          notes: doc.rejectionReason || 'Document reviewed',
+        }));
+>>>>>>> origin/rohit
 
     return {
       parentId: parent.id,
@@ -559,6 +633,11 @@ export class ParentsService {
       isOneTimeVerified,
       canEditDocuments,
       lastKycDate: parent.kycSubmittedAt ?? undefined,
+<<<<<<< HEAD
+=======
+      kycApprovedAt: parent.kycApprovedAt ?? undefined,
+      kycRejectionReason: parent.kycRejectionReason ?? parent.rejectionReason ?? undefined,
+>>>>>>> origin/rohit
       complianceStatus,
       childId: child?.id,
       childName: child
@@ -579,7 +658,11 @@ export class ParentsService {
   async submitKyc(userId: string, dto: SubmitKycDto = {}): Promise<{ message: string; kycStatus: string }> {
     const parent = await this.prisma.parent.findUnique({
       where: { userId },
+<<<<<<< HEAD
       include: { 
+=======
+      include: {
+>>>>>>> origin/rohit
         documents: true,
         user: {
           select: {
@@ -611,6 +694,52 @@ export class ParentsService {
       );
     }
 
+<<<<<<< HEAD
+=======
+    let submissionId: string | undefined;
+    try {
+      if ((this.prisma as any).kycSubmission) {
+        const attemptCount = await (this.prisma as any).kycSubmission.count({
+          where: { parentId: parent.id },
+        });
+
+        const submission = await (this.prisma as any).kycSubmission.create({
+          data: {
+            parentId: parent.id,
+            status: KycStatus.SUBMITTED,
+            submittedAt: new Date(),
+            attemptNumber: attemptCount + 1,
+            notes: dto.notes,
+          },
+        });
+        submissionId = submission.id;
+
+        await this.prisma.parentDocument.updateMany({
+          where: { parentId: parent.id },
+          data: {
+            submissionId: submission.id,
+            status: DocumentStatus.UNDER_REVIEW,
+          },
+        });
+      } else {
+        await this.prisma.parentDocument.updateMany({
+          where: { parentId: parent.id },
+          data: {
+            status: DocumentStatus.UNDER_REVIEW,
+          },
+        });
+      }
+    } catch (subErr) {
+      this.logger.warn(`Could not record KycSubmission entry: ${subErr?.message || subErr}`);
+      await this.prisma.parentDocument.updateMany({
+        where: { parentId: parent.id },
+        data: {
+          status: DocumentStatus.UNDER_REVIEW,
+        },
+      });
+    }
+
+>>>>>>> origin/rohit
     await this.prisma.parent.update({
       where: { id: parent.id },
       data: {
@@ -633,7 +762,11 @@ export class ParentsService {
         where: { role: Role.ADMIN, isActive: true },
         select: { id: true },
       });
+<<<<<<< HEAD
       
+=======
+
+>>>>>>> origin/rohit
       if (adminUsers.length > 0) {
         const parentName = `${parent.user.firstName} ${parent.user.lastName}`.trim();
         await this.notificationsService.sendBulkNotifications(
@@ -652,8 +785,13 @@ export class ParentsService {
       this.logger.error(`Failed to send KYC submission notification for parent ${parent.id}:`, error);
     }
 
+<<<<<<< HEAD
     this.logger.log(`KYC submitted for parent: ${parent.id}`);
     return { message: 'KYC submitted successfully for review', kycStatus: 'SUBMITTED' };
+=======
+    this.logger.log(`KYC submitted for parent: ${parent.id} (Submission ID: ${submissionId || 'N/A'})`);
+    return { message: 'KYC submitted successfully for review', kycStatus: 'SUBMITTED', submissionId: submissionId || parent.id } as any;
+>>>>>>> origin/rohit
   }
 
   async requestDocumentUpdate(userId: string, dto: RequestDocumentUpdateDto): Promise<{ message: string }> {
@@ -775,6 +913,74 @@ export class ParentsService {
     return document;
   }
 
+<<<<<<< HEAD
+=======
+  async uploadBatchDocuments(
+    parentId: string,
+    files: Express.Multer.File[],
+    documentTypes: string[],
+    userId: string,
+    userRole: Role,
+  ) {
+    const parent = await this.prisma.parent.findUnique({ where: { id: parentId } });
+    if (!parent || parent.deletedAt) {
+      throw new NotFoundException('Parent not found');
+    }
+    if (userRole === Role.PARENT && parent.userId !== userId) {
+      throw new ForbiddenException('Access denied');
+    }
+    if (userRole === Role.PARENT && parent.kycStatus === 'APPROVED') {
+      throw new ForbiddenException(
+        'KYC is already approved. Documents cannot be modified directly. Please submit a Document Update Request.',
+      );
+    }
+
+    const uploadedDocs = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const docType = documentTypes[i] || documentTypes[0];
+      if (!docType || !Object.values(DocumentType).includes(docType as DocumentType)) {
+        throw new BadRequestException(`Invalid or missing document type for file ${file.originalname}`);
+      }
+
+      const existingDocument = await this.prisma.parentDocument.findFirst({
+        where: { parentId, documentType: docType as any },
+      });
+      if (existingDocument) {
+        if (existingDocument.storagePath || existingDocument.storageUrl) {
+          await this.documentUpload.deleteFile(
+            existingDocument.storagePath || existingDocument.storageUrl!,
+          );
+        }
+        await this.prisma.parentDocument.delete({
+          where: { id: existingDocument.id },
+        });
+      }
+
+      const saved = await this.documentUpload.saveFile(file, parentId);
+
+      const document = await this.prisma.parentDocument.create({
+        data: {
+          parentId,
+          documentType: docType as any,
+          status: 'UPLOADED' as any,
+          fileName: saved.fileName,
+          originalName: saved.originalName,
+          mimeType: saved.mimeType,
+          fileSize: saved.fileSize,
+          storagePath: saved.storagePath,
+          storageUrl: saved.storageUrl,
+          isRequired: REQUIRED_DOCUMENTS.includes(docType as DocumentType),
+        },
+      });
+      uploadedDocs.push(document);
+    }
+
+    this.logger.log(`${uploadedDocs.length} document(s) batch uploaded for parent ${parentId}`);
+    return uploadedDocs;
+  }
+
+>>>>>>> origin/rohit
   async reviewDocument(
     parentId: string,
     documentId: string,
@@ -936,7 +1142,11 @@ export class ParentsService {
   async getVerificationQueue(queryDto: QueryParentDto): Promise<VerificationQueueResponseDto> {
     const {
       page = 1,
+<<<<<<< HEAD
       limit = 20,
+=======
+      limit = 50,
+>>>>>>> origin/rohit
       search,
       verificationStatus,
       sortBy = 'createdAt',
@@ -945,6 +1155,7 @@ export class ParentsService {
 
     const where: Prisma.ParentWhereInput = {
       deletedAt: null,
+<<<<<<< HEAD
       verificationStatus: verificationStatus as any || { in: ['PENDING', 'UNDER_REVIEW', 'DOCUMENTS_REQUIRED'] as any[] },
     };
 
@@ -953,6 +1164,19 @@ export class ParentsService {
         { user: { firstName: { contains: search, mode: 'insensitive' } } },
         { user: { lastName: { contains: search, mode: 'insensitive' } } },
         { user: { email: { contains: search, mode: 'insensitive' } } },
+=======
+    };
+
+    if (verificationStatus && (verificationStatus as string) !== 'ALL') {
+      where.verificationStatus = verificationStatus as any;
+    }
+
+    if (search) {
+      where.OR = [
+        { user: { firstName: { contains: search, mode: 'insensitive' as const } } },
+        { user: { lastName: { contains: search, mode: 'insensitive' as const } } },
+        { user: { email: { contains: search, mode: 'insensitive' as const } } },
+>>>>>>> origin/rohit
       ];
     }
 
@@ -971,6 +1195,12 @@ export class ParentsService {
               phone: true,
             },
           },
+<<<<<<< HEAD
+=======
+          documents: {
+            orderBy: { createdAt: 'desc' },
+          },
+>>>>>>> origin/rohit
         },
         skip,
         take,
@@ -981,15 +1211,31 @@ export class ParentsService {
 
     const data = parents.map((p) => ({
       id: p.id,
+<<<<<<< HEAD
       name: `${p.user.firstName} ${p.user.lastName}`,
+=======
+      name: `${p.user.firstName} ${p.user.lastName}`.trim(),
+>>>>>>> origin/rohit
       email: p.user.email,
       phone: p.user.phone || '',
       registeredAt: p.createdAt,
       verificationStatus: p.verificationStatus,
       kycStatus: p.kycStatus,
+<<<<<<< HEAD
       trustScore: p.trustScore,
       occupation: p.occupation ?? undefined,
       annualIncome: p.annualIncome ?? undefined,
+=======
+      kycSubmittedAt: p.kycSubmittedAt ?? undefined,
+      kycApprovedAt: p.kycApprovedAt ?? undefined,
+      kycRejectionReason: p.kycRejectionReason ?? p.rejectionReason ?? undefined,
+      rejectionReason: p.rejectionReason ?? p.kycRejectionReason ?? undefined,
+      trustScore: p.trustScore,
+      occupation: p.occupation ?? undefined,
+      annualIncome: p.annualIncome ?? undefined,
+      documents: p.documents || [],
+      documentsCount: p.documents?.length || 0,
+>>>>>>> origin/rohit
     }));
 
     const today = new Date();
@@ -1044,6 +1290,31 @@ export class ParentsService {
         },
       });
 
+<<<<<<< HEAD
+=======
+      await tx.parentDocument.updateMany({
+        where: { parentId: id },
+        data: {
+          status: DocumentStatus.APPROVED,
+          reviewedById: adminId,
+          reviewedAt: new Date(),
+        },
+      });
+
+      try {
+        if ((tx as any).kycSubmission) {
+          await (tx as any).kycSubmission.updateMany({
+            where: { parentId: id },
+            data: {
+              status: 'APPROVED',
+              reviewedById: adminId,
+              reviewedAt: new Date(),
+            },
+          });
+        }
+      } catch {}
+
+>>>>>>> origin/rohit
       if (parent.user.role !== Role.PARENT) {
         await tx.user.update({
           where: { id: parent.userId },
@@ -1077,7 +1348,11 @@ export class ParentsService {
         where: { role: Role.ADMIN, isActive: true },
         select: { id: true },
       });
+<<<<<<< HEAD
       
+=======
+
+>>>>>>> origin/rohit
       if (adminUsers.length > 0) {
         await this.notificationsService.sendBulkNotifications(
           adminUsers.map((admin) => admin.id),
@@ -1100,7 +1375,11 @@ export class ParentsService {
 
 
   async rejectParent(id: string, reason: string, adminId: string): Promise<void> {
+<<<<<<< HEAD
     const parent = await this.prisma.parent.findUnique({ 
+=======
+    const parent = await this.prisma.parent.findUnique({
+>>>>>>> origin/rohit
       where: { id },
       include: {
         user: {
@@ -1133,6 +1412,33 @@ export class ParentsService {
         },
       });
 
+<<<<<<< HEAD
+=======
+      await tx.parentDocument.updateMany({
+        where: { parentId: id },
+        data: {
+          status: DocumentStatus.REJECTED,
+          rejectionReason: reason,
+          reviewedById: adminId,
+          reviewedAt: new Date(),
+        },
+      });
+
+      try {
+        if ((tx as any).kycSubmission) {
+          await (tx as any).kycSubmission.updateMany({
+            where: { parentId: id, status: { in: ['SUBMITTED', 'UNDER_REVIEW', 'PENDING'] } },
+            data: {
+              status: 'REJECTED',
+              rejectionReason: reason,
+              reviewedById: adminId,
+              reviewedAt: new Date(),
+            },
+          });
+        }
+      } catch {}
+
+>>>>>>> origin/rohit
       // Create HIGH severity alert for KYC rejection
       await tx.alert.create({
         data: {
@@ -1180,7 +1486,11 @@ export class ParentsService {
         where: { role: Role.ADMIN, isActive: true },
         select: { id: true },
       });
+<<<<<<< HEAD
       
+=======
+
+>>>>>>> origin/rohit
       if (adminUsers.length > 0) {
         await this.notificationsService.sendBulkNotifications(
           adminUsers.map((admin) => admin.id),
