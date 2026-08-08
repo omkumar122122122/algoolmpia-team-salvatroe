@@ -13,12 +13,8 @@ import {
   FiShield,
   FiUser,
   FiUserCheck,
-<<<<<<< HEAD
-  FiUsers
-=======
   FiUsers,
   FiPackage
->>>>>>> origin/rohit
 } from "react-icons/fi";
 
 export const users = [
@@ -388,18 +384,6 @@ export const parentNav = [
 ];
 
 export const orphanageNav = [
-<<<<<<< HEAD
-  { label: "Dashboard",          path: "/orphanage",                  icon: FiActivity },
-  { label: "AI Attendance",      path: "/orphanage/ai-attendance",    icon: FiCamera },
-  { label: "Visit Requests",     path: "/orphanage/visit-requests",   icon: FiCalendar },
-  { label: "Children",           path: "/orphanage/children",         icon: FiUsers },
-  { label: "Register Child",     path: "/orphanage/register-child",   icon: FiPlusCircle },
-  { label: "Staff Management",   path: "/orphanage/staff",            icon: FiBriefcase },
-  { label: "Adoption Management", path: "/orphanage/adoption-management", icon: FiFileText },
-  { label: "Health Monitoring",  path: "/orphanage/health-monitoring",icon: FiHeart },
-  { label: "Reports",            path: "/orphanage/reports",          icon: FiShield },
-  { label: "Profile",            path: "/orphanage/profile",          icon: FiUser }
-=======
   { label: "Dashboard",          path: "/orphanage",                    icon: FiActivity },
   { label: "AI Attendance",      path: "/orphanage/ai-attendance",      icon: FiCamera },
   { label: "Visit Requests",     path: "/orphanage/visit-requests",     icon: FiCalendar },
@@ -411,7 +395,6 @@ export const orphanageNav = [
   { label: "Health Monitoring",  path: "/orphanage/health-monitoring",  icon: FiHeart },
   { label: "Reports",            path: "/orphanage/reports",            icon: FiShield },
   { label: "Profile",            path: "/orphanage/profile",            icon: FiUser }
->>>>>>> origin/rohit
 ];
 
 /* ─── Health Monitoring Data ──────────────────────────────── */

@@ -17,10 +17,7 @@ import OrphanageDetail      from "../pages/OrphanageDetail.jsx";
 import OrphanageFullProfile from "../pages/OrphanageFullProfile.jsx";
 import Orphanages           from "../pages/Orphanages.jsx";
 import ParentDashboard      from "../pages/ParentDashboard.jsx";
-<<<<<<< HEAD
-=======
 import PostAdoptionMonitoring from "../pages/PostAdoptionMonitoring.jsx";
->>>>>>> origin/rohit
 import ParentKYC            from "../pages/ParentKYC.jsx";
 import ParentProfile        from "../pages/ParentProfile.jsx";
 import ParentVerificationCenter from "../pages/ParentVerificationCenter.jsx";
@@ -34,8 +31,6 @@ import SystemSettings       from "../pages/SystemSettings.jsx";
 import ChildWelfareFollowUpSession from "../pages/ChildWelfareFollowUpSession.jsx";
 import VisitRequest         from "../pages/VisitRequest.jsx";
 import SahayakAI            from "../pages/SahayakAI.jsx";
-<<<<<<< HEAD
-=======
 import DonorLayout        from "../layouts/DonorLayout.jsx";
 import DonorLogin         from "../pages/DonorLogin.jsx";
 import DonorRegister      from "../pages/DonorRegister.jsx";
@@ -43,7 +38,6 @@ import DonorDashboard     from "../pages/DonorDashboard.jsx";
 import DonorRequests      from "../pages/DonorRequests.jsx";
 import MyDonations        from "../pages/MyDonations.jsx";
 import OrphanageDonationRequests from "../pages/OrphanageDonationRequests.jsx";
->>>>>>> origin/rohit
 import ProtectedRoute       from "./ProtectedRoute.jsx";
 
 export default function AppRoutes() {
@@ -53,13 +47,10 @@ export default function AppRoutes() {
       <Route path="/"      element={<Navigate to="/login" replace />} />
       <Route path="/login" element={<Login />} />
 
-<<<<<<< HEAD
-=======
       {/* ── Donor Auth Public Routes ─────────────────────── */}
       <Route path="/donor/login"    element={<DonorLogin />} />
       <Route path="/donor/register" element={<DonorRegister />} />
 
->>>>>>> origin/rohit
       {/* ── Admin ─────────────────────────────────────────── */}
       <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
         <Route path="/admin" element={<AdminLayout />}>
@@ -93,10 +84,7 @@ export default function AppRoutes() {
           <Route path="visit-request" element={<VisitRequest />} />
           <Route path="sahayak-ai"    element={<SahayakAI />} />
           <Route path="notifications" element={<Alerts />} />
-<<<<<<< HEAD
-=======
           <Route path="post-adoption-monitoring" element={<PostAdoptionMonitoring />} />
->>>>>>> origin/rohit
           <Route path="child-welfare-follow-up-session" element={<ChildWelfareFollowUpSession />} />
         </Route>
       </Route>
@@ -118,8 +106,6 @@ export default function AppRoutes() {
           <Route path="staff/:staffId"                  element={<StaffProfile />} />
           <Route path="reports"                         element={<Reports />} />
           <Route path="profile"                         element={<Profile />} />
-<<<<<<< HEAD
-=======
           <Route path="donation-requests"               element={<OrphanageDonationRequests />} />
         </Route>
       </Route>
@@ -132,7 +118,6 @@ export default function AppRoutes() {
           <Route path="requests"  element={<MyDonations />} />
           <Route path="causes"    element={<DonorDashboard />} />
           <Route path="profile"   element={<Profile />} />
->>>>>>> origin/rohit
         </Route>
       </Route>
 

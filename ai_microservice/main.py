@@ -348,10 +348,7 @@ async def detect_face(
         print("Size: FAIL")
         print("Blur: FAIL")
         print("Brightness: FAIL")
-<<<<<<< HEAD
-=======
         print("Stability: FAIL")
->>>>>>> origin/rohit
         print(f"Face Width: 0")
         print(f"Face Height: 0")
         print(f"Face Area Ratio: 0")
@@ -424,10 +421,7 @@ async def detect_face(
         print("Size: FAIL")
         print("Blur: FAIL")
         print("Brightness: FAIL")
-<<<<<<< HEAD
-=======
         print("Stability: FAIL")
->>>>>>> origin/rohit
         print(f"Face Width: 0")
         print(f"Face Height: 0")
         print(f"Face Area Ratio: 0")
@@ -612,10 +606,7 @@ async def detect_face(
     print(f"Size: {'PASS' if size_pass else 'FAIL'} ({face_area_ratio}) [minRatio: 0.08, maxRatio: 0.35, minW: 180, minH: 220]")
     print(f"Blur: {'PASS' if blur_pass else 'FAIL'} ({blur_score}) [threshold: 80]")
     print(f"Brightness: {'PASS' if brightness_pass else 'FAIL'} ({brightness_value}) [min: 60, max: 200]")
-<<<<<<< HEAD
-=======
     print(f"Stability: FAIL (framesStable: 0, required: 30)")
->>>>>>> origin/rohit
     print(f"Face Width: {int(face_width)}")
     print(f"Face Height: {int(face_height)}")
     print(f"Face Area Ratio: {face_area_ratio}")
@@ -2343,19 +2334,12 @@ async def generate_master_embedding(req: Optional[EmbeddingRequest] = None):
     print(f"{processing_time_ms} ms")
     print("=" * 50)
 
-<<<<<<< HEAD
-=======
     # ─── 11. Return ONLY the summary (never the 512-d vector) ─────────────────
->>>>>>> origin/rohit
     return {
         "success": True,
         "phase": "6B.3",
         "masterEmbeddingCreated": True,
         "embeddingDimension": EMBEDDING_DIMENSION,
-<<<<<<< HEAD
-        "masterEmbedding": [float(x) for x in master_embedding],
-=======
->>>>>>> origin/rohit
         "validEmbeddingsUsed": valid_count,
         "outliersExcluded": outlier_count,
         "masterEmbeddingNorm": round(master_norm_after, 6),
@@ -2471,96 +2455,11 @@ async def save_to_database(req: Phase6CRequest):
             }
         )
 
-<<<<<<< HEAD
-    # 3. Database Transaction & Child Record Linking
-=======
     # 3. Database Transaction
->>>>>>> origin/rohit
     print("Database Transaction Started")
     conn = None
     try:
         conn = psycopg2.connect(DATABASE_URL)
-<<<<<<< HEAD
-
-        real_child_uuid = None
-        with conn.cursor() as cur:
-            cur.execute("""
-                SELECT id FROM "children" WHERE id = %s OR "childCode" = %s LIMIT 1;
-            """, (req.childId, req.childId))
-            child_row = cur.fetchone()
-            if child_row:
-                real_child_uuid = child_row[0]
-
-        notes_json = json.dumps({
-            "imagesCaptured": req.imagesCaptured,
-            "imagesUsed": req.imagesUsed,
-            "outliersRemoved": req.outliersRemoved,
-            "embeddingDimension": len(master_embedding),
-            "model": req.model,
-            "version": req.version
-        })
-        now = datetime.now(timezone.utc)
-
-        raw_floats_before = [round(float(x), 6) for x in master_embedding]
-        first_10_before = raw_floats_before[:10]
-        norm_before = float(np.linalg.norm(master_embedding))
-
-        print(f"EMBEDDING STORAGE VERIFICATION")
-        print(f"Child ID: {real_child_uuid or req.childId}")
-        print(f"Embedding Length: {len(master_embedding)}")
-        print(f"Embedding Norm Before Save: {norm_before:.6f}")
-        print(f"First 10 Values BEFORE Saving: {first_10_before}")
-
-        if real_child_uuid:
-            with conn:
-                with conn.cursor() as cur:
-                    vector_json = json.dumps([float(x) for x in master_embedding])
-                    new_id = str(uuid.uuid4())
-                    insert_query = """
-                    INSERT INTO "biometric_data" (
-                        "id", "childId", "type", "capturedAt", "faceEncodingJson", 
-                        "faceModelVersion", "isActive", "notes", "createdAt", "updatedAt"
-                    ) VALUES (
-                        %s, %s, 'FACE_RECOGNITION', %s, %s,
-                        %s, true, %s, %s, %s
-                    )
-                    """
-                    cur.execute(
-                        insert_query,
-                        (
-                            new_id,
-                            real_child_uuid,
-                            now,
-                            vector_json,
-                            req.version,
-                            notes_json,
-                            now,
-                            now
-                        )
-                    )
-
-                with conn.cursor() as cur:
-                    cur.execute('SELECT "faceEncodingJson" FROM "biometric_data" WHERE id = %s;', (new_id,))
-                    rb_row = cur.fetchone()
-                    if rb_row and rb_row[0]:
-                        parsed_readback = json.loads(rb_row[0])
-                        first_10_after = [round(float(x), 6) for x in parsed_readback[:10]]
-                        norm_after = float(np.linalg.norm(parsed_readback))
-                        print(f"Embedding Norm AFTER Readback: {norm_after:.6f}")
-                        print(f"First 10 Values AFTER Reading Back: {first_10_after}")
-                        if first_10_before == first_10_after:
-                            print("VERIFICATION: Stored embedding matches generated embedding 100% EXACTLY!")
-                        else:
-                            print("WARNING: Embedding mismatch detected during readback verification!")
-
-            print("Embedding Stored in Database (Linked to Child UUID)")
-            print("Database Transaction Committed")
-        else:
-            # Child ID is a draft registration code (e.g. CH-7078) not yet in DB.
-            _master_embeddings[req.childId] = master_embedding
-            print(f"Child ID '{req.childId}' not yet in database. Master embedding cached in RAM for session '{store_key}'.")
-
-=======
         # Using context manager for transaction block
         with conn:
             with conn.cursor() as cur:
@@ -2609,7 +2508,6 @@ async def save_to_database(req: Phase6CRequest):
         print("Embedding Stored Successfully")
         print()
         print("Database Transaction Committed")
->>>>>>> origin/rohit
         print()
         print("Enrollment Completed Successfully")
         print()
@@ -3358,14 +3256,7 @@ async def generate_live_embedding(
         return {
             "success": True,
             "phase": "8A",
-<<<<<<< HEAD
-            "captureAllowed": False,
-            "embeddingGenerated": False,
             "liveEmbeddingGenerated": False,
-            "status": "FAILED",
-=======
-            "liveEmbeddingGenerated": False,
->>>>>>> origin/rohit
             "phaseStatus": "FAILED",
             "reason": reason
         }
@@ -3511,14 +3402,7 @@ async def generate_live_embedding(
     return {
         "success": True,
         "phase": "8A",
-<<<<<<< HEAD
-        "captureAllowed": True,
-        "embeddingGenerated": True,
         "liveEmbeddingGenerated": True,
-        "status": "PASSED",
-=======
-        "liveEmbeddingGenerated": True,
->>>>>>> origin/rohit
         "embeddingDimension": EMBEDDING_DIMENSION,
         "normalized": True,
         "readyForMatching": True,
@@ -3661,11 +3545,6 @@ async def load_enrolled_embeddings(req: Optional[LoadEmbeddingsRequest] = None):
         conn.close()
         return fail_response(f"Database query failed: {query_exc}")
 
-<<<<<<< HEAD
-    _recognition_cache.clear()
-
-=======
->>>>>>> origin/rohit
     total_found = len(rows)
     if total_found == 0:
         conn.close()
@@ -3677,11 +3556,8 @@ async def load_enrolled_embeddings(req: Optional[LoadEmbeddingsRequest] = None):
         return fail_response("Database contains no children")
 
     # 4. Validate and cache each record
-<<<<<<< HEAD
-=======
     _recognition_cache.clear()
 
->>>>>>> origin/rohit
     valid_count = 0
     invalid_count = 0
     missing_count = 0
@@ -3703,21 +3579,10 @@ async def load_enrolled_embeddings(req: Optional[LoadEmbeddingsRequest] = None):
         face_json    = row["face_encoding_json"]
 
         print(f"Child #{idx}")
-<<<<<<< HEAD
-        print(f"childId: {child_id}")
-        print(f"name: {child_name} ({child_code})")
-        print(f"masterEmbedding exists?: {'YES' if face_json else 'NO'}")
-
-        if not face_json:
-            print("embedding length: 0")
-            print("embedding dimension: 0")
-            print("skip reason: No faceEncodingJson found in biometric_data for this child\n")
-=======
         print(f"Name: {child_name} ({child_code})")
 
         if not face_json:
             print("Embedding: Missing\n")
->>>>>>> origin/rohit
             missing_count += 1
             continue
 
@@ -3733,20 +3598,6 @@ async def load_enrolled_embeddings(req: Optional[LoadEmbeddingsRequest] = None):
                 raw_list = []
 
             vec = np.array(raw_list, dtype=np.float32)
-<<<<<<< HEAD
-            dim = int(vec.shape[0])
-            print(f"embedding length: {len(raw_list)}")
-            print(f"embedding dimension: {dim}")
-        except Exception as exc:
-            print("embedding length: N/A")
-            print("embedding dimension: N/A")
-            print(f"skip reason: JSON parse error ({exc})\n")
-            invalid_count += 1
-            continue
-
-        if dim != EMBEDDING_DIMENSION:
-            print(f"skip reason: Dimension mismatch ({dim} != {EMBEDDING_DIMENSION})\n")
-=======
         except Exception as exc:
             print(f"Embedding: Invalid (JSON parse error: {exc})\n")
             invalid_count += 1
@@ -3756,40 +3607,22 @@ async def load_enrolled_embeddings(req: Optional[LoadEmbeddingsRequest] = None):
         if dim != EMBEDDING_DIMENSION:
             print(f"Embedding Length: {dim} (Expected {EMBEDDING_DIMENSION})")
             print("Embedding: Invalid (Dimension mismatch)\n")
->>>>>>> origin/rohit
             invalid_count += 1
             continue
 
         if bool(np.isnan(vec).any()) or bool(np.isinf(vec).any()):
-<<<<<<< HEAD
-            print("skip reason: Vector contains NaN or Infinity values\n")
-=======
             print("Embedding: Invalid (NaN/Inf values)\n")
->>>>>>> origin/rohit
             invalid_count += 1
             continue
 
         l2_norm_before = float(np.linalg.norm(vec))
         if l2_norm_before < _EPSILON:
-<<<<<<< HEAD
-            print("skip reason: Vector L2 norm is zero\n")
-=======
             print("Embedding: Invalid (Zero norm)\n")
->>>>>>> origin/rohit
             invalid_count += 1
             continue
 
         # L2 normalize on-the-fly
         normalized_vec = vec / l2_norm_before
-<<<<<<< HEAD
-        first_10_loaded = [round(float(x), 6) for x in normalized_vec[:10]]
-
-        print(f"database child id: {child_id}")
-        print(f"first 10 embedding values: {first_10_loaded}")
-        print(f"embedding norm: {float(np.linalg.norm(normalized_vec)):.6f}")
-        print(f"data type after loading: {normalized_vec.dtype}")
-=======
->>>>>>> origin/rohit
 
         _recognition_cache[child_id] = {
             "childId":     child_id,
@@ -3800,10 +3633,7 @@ async def load_enrolled_embeddings(req: Optional[LoadEmbeddingsRequest] = None):
             "capturedAt":  captured_at,
         }
         valid_count += 1
-<<<<<<< HEAD
-=======
         print(f"Embedding Length: {dim}")
->>>>>>> origin/rohit
         print("Loaded Successfully\n")
 
     conn.close()
@@ -4187,15 +4017,12 @@ async def recognize_live(
             "childrenCompared": len(results),
             "comparisonTimeMs": proc_time_ms_8c
         }
-<<<<<<< HEAD
-=======
     else:
         # AMBIGUOUS
         print(f"Recognition Decision ......... AMBIGUOUS MATCH")
         print(f"Reason ....................... {reason}")
         print(f"Ready For Attendance ......... NO")
         print("=" * 50)
->>>>>>> origin/rohit
         return {
             "success": True,
             "phase": "8D",
@@ -4206,1155 +4033,3 @@ async def recognize_live(
             "childrenCompared": len(results),
             "comparisonTimeMs": proc_time_ms_8c
         }
-<<<<<<< HEAD
-
-
-# =============================================================================
-# Phase 9A — Attendance Validation (NO DATABASE SAVE)
-# =============================================================================
-
-class Phase9AValidationRequest(BaseModel):
-    childId: str
-    date: Optional[str] = None
-    time: Optional[str] = None
-    confidenceLevel: Optional[str] = None
-    bestSimilarity: Optional[float] = None
-    child: Optional[dict] = None
-
-
-@app.post("/attendance/validate")
-async def validate_attendance_phase_9a(req: Phase9AValidationRequest):
-    """
-    Phase 9A - Attendance Validation Endpoint.
-    Validates child existence, active status, enrollment completeness, and today's attendance.
-    Does NOT mark attendance or modify the database.
-    """
-    request_start_time = time.perf_counter()
-    today_date_str = req.date or datetime.now().strftime("%Y-%m-%d")
-    current_time_str = req.time or datetime.now().strftime("%H:%M:%S")
-
-    print()
-    print("=" * 50)
-    print("PHASE 9A")
-    print("ATTENDANCE VALIDATION")
-    print("=" * 50)
-
-    if not DATABASE_URL:
-        print("Database Connection ...... FAILED")
-        print("PHASE 9A STATUS .......... FAILED")
-        print("=" * 50)
-        return {
-            "success": False,
-            "phase": "9A",
-            "phaseStatus": "FAILED",
-            "attendanceAllowed": False,
-            "attendanceStatus": "DB_CONNECTION_FAILED",
-            "reason": "Database connection string missing",
-            "readyForAttendanceSave": False
-        }
-
-    conn = None
-    try:
-        conn = psycopg2.connect(DATABASE_URL)
-        conn.set_session(readonly=True, autocommit=True)
-    except Exception as db_exc:
-        print(f"Database Connection ...... FAILED ({db_exc})")
-        print("PHASE 9A STATUS .......... FAILED")
-        print("=" * 50)
-        return {
-            "success": False,
-            "phase": "9A",
-            "phaseStatus": "FAILED",
-            "attendanceAllowed": False,
-            "attendanceStatus": "DB_CONNECTION_FAILED",
-            "reason": str(db_exc),
-            "readyForAttendanceSave": False
-        }
-
-    try:
-        with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            # Step 1 & 2: Child Existence & Status Check
-            cur.execute("""
-                SELECT id, "childCode", "firstName", "lastName", "currentStatus", "isActive"
-                FROM "children"
-                WHERE id = %s AND "deletedAt" IS NULL
-            """, (req.childId,))
-            child_row = cur.fetchone()
-
-            if not child_row:
-                conn.close()
-                print("Recognition .............. SUCCESS")
-                print("Child Found .............. NO")
-                print("PHASE 9A STATUS .......... FAILED")
-                print("=" * 50)
-                return {
-                    "success": True,
-                    "phase": "9A",
-                    "phaseStatus": "FAILED",
-                    "attendanceAllowed": False,
-                    "attendanceStatus": "CHILD_NOT_FOUND",
-                    "readyForAttendanceSave": False
-                }
-
-            print("Recognition .............. SUCCESS")
-            print("Child Found .............. YES")
-
-            child_status = str(child_row["currentStatus"]).upper()
-            is_active = bool(child_row["isActive"])
-
-            if not is_active or child_status in ["INACTIVE", "TRANSFERRED", "LEFT", "SUSPENDED", "DECEASED", "MISSING", "RUNAWAY", "ADOPTED"]:
-                conn.close()
-                print(f"Child Status ............. {child_status}")
-                print("Attendance Blocked")
-                print("PHASE 9A STATUS .......... FAILED")
-                print("=" * 50)
-                return {
-                    "success": True,
-                    "phase": "9A",
-                    "phaseStatus": "FAILED",
-                    "attendanceAllowed": False,
-                    "attendanceStatus": "CHILD_INACTIVE",
-                    "readyForAttendanceSave": False
-                }
-
-            print(f"Child Status ............. ACTIVE")
-
-            # Step 3: Enrollment Status Check (active BiometricData)
-            cur.execute("""
-                SELECT id FROM "biometric_data"
-                WHERE "childId" = %s AND "type" = 'FACE_RECOGNITION' AND "isActive" = true
-            """, (req.childId,))
-            bio_row = cur.fetchone()
-
-            if not bio_row:
-                conn.close()
-                print("Enrollment ............... INCOMPLETE")
-                print("Attendance Blocked")
-                print("PHASE 9A STATUS .......... FAILED")
-                print("=" * 50)
-                return {
-                    "success": True,
-                    "phase": "9A",
-                    "phaseStatus": "FAILED",
-                    "attendanceAllowed": False,
-                    "attendanceStatus": "ENROLLMENT_INCOMPLETE",
-                    "readyForAttendanceSave": False
-                }
-
-            print("Enrollment ............... COMPLETED")
-
-            # Step 4: Check Today's Attendance in attendance_records
-            print("Checking Today's Attendance...")
-            cur.execute("""
-                SELECT id FROM "attendance_records"
-                WHERE "childId" = %s
-                  AND ("date"::date = CURRENT_DATE OR ("checkInTime" IS NOT NULL AND "checkInTime"::date = CURRENT_DATE))
-                  AND "status" = 'PRESENT'
-            """, (req.childId,))
-            att_row = cur.fetchone()
-
-            conn.close()
-            validation_time_ms = round((time.perf_counter() - request_start_time) * 1000.0, 1)
-
-            if att_row:
-                print("Attendance Exists ........ YES")
-                print("Attendance Status ........ ALREADY MARKED")
-                print("Ready For Save ........... NO")
-                print(f"Validation Time .......... {validation_time_ms} ms")
-                print("PHASE 9A STATUS .......... PASSED")
-                print("=" * 50)
-                return {
-                    "success": True,
-                    "phase": "9A",
-                    "phaseStatus": "PASSED",
-                    "attendanceAllowed": False,
-                    "attendanceStatus": "ALREADY_MARKED",
-                    "childId": req.childId,
-                    "date": today_date_str,
-                    "time": current_time_str,
-                    "readyForAttendanceSave": False,
-                    "validationTimeMs": validation_time_ms
-                }
-
-            print("Attendance Exists ........ NO")
-            print("Attendance Allowed ....... YES")
-            print("Ready For Save ........... YES")
-            print(f"Validation Time .......... {validation_time_ms} ms")
-            print("PHASE 9A STATUS .......... PASSED")
-            print("=" * 50)
-
-            return {
-                "success": True,
-                "phase": "9A",
-                "phaseStatus": "PASSED",
-                "attendanceAllowed": True,
-                "attendanceStatus": "ALLOW_ATTENDANCE",
-                "childId": req.childId,
-                "date": today_date_str,
-                "time": current_time_str,
-                "readyForAttendanceSave": True,
-                "validationTimeMs": validation_time_ms
-            }
-
-    except Exception as exc:
-        if conn:
-            conn.close()
-        print(f"Validation Error ......... {exc}")
-        print("PHASE 9A STATUS .......... FAILED")
-        print("=" * 50)
-        return {
-            "success": False,
-            "phase": "9A",
-            "phaseStatus": "FAILED",
-            "attendanceAllowed": False,
-            "attendanceStatus": "VALIDATION_ERROR",
-            "reason": str(exc),
-            "readyForAttendanceSave": False
-        }
-
-
-# =============================================================================
-# Phase 9B — Save Attendance (TRANSACTIONAL INSERTION)
-# =============================================================================
-
-class Phase9BSaveRequest(BaseModel):
-    childId: str
-    date: Optional[str] = None
-    time: Optional[str] = None
-    bestSimilarity: Optional[float] = 0.95
-    confidenceLevel: Optional[str] = "HIGH"
-    recognitionStatus: Optional[str] = "RECOGNIZED"
-    cameraId: Optional[str] = "CAM-01-MAIN"
-    attendanceSource: Optional[str] = "AI_FACE_RECOGNITION"
-    processingTimeMs: Optional[float] = None
-    child: Optional[dict] = None
-
-
-@app.post("/attendance/save")
-async def save_attendance_phase_9b(req: Phase9BSaveRequest):
-    """
-    Phase 9B - Save Attendance Endpoint.
-    Transactionally inserts a single attendance record into PostgreSQL.
-    Only executed after Phase 9A validation passed.
-    """
-    start_time = time.perf_counter()
-    today_date_str = req.date or datetime.now().strftime("%Y-%m-%d")
-    current_time_str = req.time or datetime.now().strftime("%H:%M:%S")
-    camera_id = req.cameraId or "CAM-01-MAIN"
-    similarity_val = float(req.bestSimilarity or 0.95)
-    confidence_str = str(req.confidenceLevel or "HIGH").upper()
-    attn_source = req.attendanceSource or "AI_FACE_RECOGNITION"
-
-    print()
-    print("=" * 50)
-    print("PHASE 9B")
-    print("SAVE ATTENDANCE")
-    print("=" * 50)
-    print("Attendance Validation ...... PASSED")
-
-    if not DATABASE_URL:
-        print("Database Connection ...... FAILED")
-        print("PHASE 9B FAILED")
-        print("=" * 50)
-        return {
-            "success": False,
-            "phase": "9B",
-            "phaseStatus": "FAILED",
-            "attendanceSaved": False,
-            "reason": "DATABASE_SAVE_FAILED",
-            "detail": "Missing DATABASE_URL"
-        }
-
-    conn = None
-    try:
-        conn = psycopg2.connect(DATABASE_URL)
-        conn.autocommit = False  # Start transaction
-        print("Database Transaction ....... STARTED")
-
-        with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            # 1. Fetch child and orphanageId
-            cur.execute("""
-                SELECT id, "orphanageId" FROM "children"
-                WHERE id = %s AND "deletedAt" IS NULL
-            """, (req.childId,))
-            child_row = cur.fetchone()
-
-            if not child_row:
-                conn.rollback()
-                conn.close()
-                print("PHASE 9B FAILED")
-                print("Reason ....................... Child ID not found")
-                print("Transaction rollback")
-                print("=" * 50)
-                return {
-                    "success": False,
-                    "phase": "9B",
-                    "phaseStatus": "FAILED",
-                    "attendanceSaved": False,
-                    "reason": "CHILD_NOT_FOUND"
-                }
-
-            orphanage_id = child_row["orphanageId"]
-
-            # 2. Verify duplicate record doesn't exist for today
-            cur.execute("""
-                SELECT id FROM "attendance_records"
-                WHERE "childId" = %s
-                  AND ("date"::date = CURRENT_DATE OR ("checkInTime" IS NOT NULL AND "checkInTime"::date = CURRENT_DATE))
-                  AND "status" = 'PRESENT'
-                FOR UPDATE
-            """, (req.childId,))
-            existing_row = cur.fetchone()
-
-            if existing_row:
-                conn.rollback()
-                conn.close()
-                print("PHASE 9B FAILED")
-                print("Reason ....................... Duplicate record")
-                print("Transaction rollback")
-                print("=" * 50)
-                return {
-                    "success": False,
-                    "phase": "9B",
-                    "phaseStatus": "FAILED",
-                    "attendanceSaved": False,
-                    "reason": "ALREADY_MARKED",
-                    "attendanceId": existing_row["id"]
-                }
-
-            # 3. Transactional Insert
-            new_att_id = str(uuid.uuid4())
-            now_dt = datetime.now()
-            today_dt = now_dt.date()
-            match_score_pct = round(similarity_val * 100.0, 2)
-            remarks_str = f"Source: {attn_source} | Cam: {camera_id}"
-
-            cur.execute("""
-                INSERT INTO "attendance_records" (
-                    id, "childId", "orphanageId", date, status, "checkInTime",
-                    "isVerified", "biometricVerified", "faceMatchScore", "livenessScore",
-                    remarks, "createdAt", "updatedAt"
-                ) VALUES (
-                    %s, %s, %s, %s, 'PRESENT', %s,
-                    true, true, %s, 95.0,
-                    %s, %s, %s
-                ) RETURNING id;
-            """, (
-                new_att_id, req.childId, orphanage_id, today_dt, now_dt,
-                match_score_pct, remarks_str, now_dt, now_dt
-            ))
-
-            inserted_row = cur.fetchone()
-
-            if not inserted_row:
-                conn.rollback()
-                conn.close()
-                print("PHASE 9B FAILED")
-                print("Reason ....................... Database insert failed")
-                print("Transaction rollback")
-                print("=" * 50)
-                return {
-                    "success": False,
-                    "phase": "9B",
-                    "phaseStatus": "FAILED",
-                    "attendanceSaved": False,
-                    "reason": "DATABASE_SAVE_FAILED"
-                }
-
-            # Commit Transaction
-            conn.commit()
-            conn.close()
-
-            proc_time_ms = round((time.perf_counter() - start_time) * 1000.0, 1)
-
-            print(f"Child ID ................... {req.childId}")
-            print(f"Attendance Status .......... PRESENT")
-            print(f"Attendance Source .......... {attn_source}")
-            print(f"Recognition Similarity ..... {similarity_val:.4f}")
-            print(f"Confidence Level ........... {confidence_str}")
-            print(f"Camera ID .................. {camera_id}")
-            print(f"Attendance Saved ........... YES")
-            print(f"Attendance ID .............. {new_att_id}")
-            print("Database Commit ............ SUCCESS")
-            print(f"Processing Time ............ {proc_time_ms} ms")
-            print("PHASE 9B STATUS ............ PASSED")
-            print("=" * 50)
-
-            return {
-                "success": True,
-                "phase": "9B",
-                "phaseStatus": "PASSED",
-                "attendanceSaved": True,
-                "attendanceId": new_att_id,
-                "childId": req.childId,
-                "attendanceStatus": "PRESENT",
-                "attendanceSource": attn_source,
-                "date": today_date_str,
-                "time": current_time_str,
-                "processingTimeMs": proc_time_ms
-            }
-
-    except Exception as exc:
-        if conn:
-            try:
-                conn.rollback()
-                conn.close()
-            except Exception:
-                pass
-        print("PHASE 9B FAILED")
-        print(f"Reason ....................... {exc}")
-        print("Transaction rollback")
-        print("=" * 50)
-        return {
-            "success": False,
-            "phase": "9B",
-            "phaseStatus": "FAILED",
-            "attendanceSaved": False,
-            "reason": "DATABASE_SAVE_FAILED",
-            "detail": str(exc)
-        }
-
-
-# =============================================================================
-# Phase 9C — Attendance Completion & Auto Reset
-# =============================================================================
-
-class Phase9CCompletionRequest(BaseModel):
-    attendanceId: str
-    childId: str
-    attendanceStatus: Optional[str] = "PRESENT"
-    date: Optional[str] = None
-    time: Optional[str] = None
-    child: Optional[dict] = None
-
-
-@app.post("/attendance/complete")
-async def complete_attendance_phase_9c(req: Phase9CCompletionRequest):
-    """
-    Phase 9C - Attendance Completion & Auto Reset Endpoint.
-    Clears frame-level temporary buffers in memory while preserving in-memory master face embedding cache.
-    """
-    embeddings_count = len(MASTER_ENROLLED_EMBEDDINGS) if 'MASTER_ENROLLED_EMBEDDINGS' in globals() else 0
-
-    print()
-    print("=" * 50)
-    print("PHASE 9C")
-    print("ATTENDANCE COMPLETION")
-    print("=" * 50)
-    print(f"Attendance Saved ............ YES (ID: {req.attendanceId})")
-    print("Success Displayed ........... YES")
-    print("Attendance List Updated ..... YES")
-    print("Today's Counter Updated ..... YES")
-    print("Pipeline Reset .............. YES")
-    print("Temporary Memory Cleared .... YES")
-    print(f"Embedding Cache Preserved ... YES ({embeddings_count} children loaded)")
-    print("Detection Restarted ......... YES")
-    print("Ready For Next Child ........ YES")
-    print("PHASE 9C STATUS ............. PASSED")
-    print("=" * 50)
-
-    return {
-        "success": True,
-        "phase": "9C",
-        "phaseStatus": "PASSED",
-        "attendanceCompleted": True,
-        "pipelineReset": True,
-        "readyForNextChild": True,
-        "attendanceId": req.attendanceId,
-        "childId": req.childId
-    }
-
-
-# =============================================================================
-# Phase 10A — Unknown Face Detection (NO DATABASE SAVE, NO ALERT)
-# =============================================================================
-
-class Phase10AUnknownRequest(BaseModel):
-    bestSimilarity: Optional[float] = 0.41
-    recognitionThreshold: Optional[float] = 0.65
-    frameKey: Optional[str] = None
-    reason: Optional[str] = "NO_MATCH_FOUND"
-
-
-@app.post("/attendance/unknown-face-10a")
-async def detect_unknown_face_phase_10a(req: Phase10AUnknownRequest):
-    """
-    Phase 10A - Unknown Face Detection Endpoint.
-    Classifies face as UNKNOWN when similarity is below recognition threshold.
-    Does NOT save attendance, does NOT log event to DB, does NOT generate alerts.
-    """
-    sim_val = float(req.bestSimilarity if req.bestSimilarity is not None else 0.41)
-    thresh_val = float(req.recognitionThreshold or 0.65)
-    embeddings_count = len(MASTER_ENROLLED_EMBEDDINGS) if 'MASTER_ENROLLED_EMBEDDINGS' in globals() else 0
-
-    print()
-    print("=" * 50)
-    print("PHASE 10A")
-    print("UNKNOWN FACE DETECTED")
-    print("=" * 50)
-    print("Live Embedding ............. GENERATED")
-    print(f"Master Embeddings .......... LOADED ({embeddings_count} children)")
-    print(f"Highest Similarity ......... {sim_val:.4f}")
-    print(f"Recognition Threshold ...... {thresh_val:.4f}")
-    print("Recognition Result ......... UNKNOWN")
-    print("Attendance Allowed ......... NO")
-    print("Next Step .................. Track Unknown")
-    print("PHASE 10A STATUS ........... PASSED")
-    print("=" * 50)
-
-    return {
-        "success": True,
-        "phase": "10A",
-        "phaseStatus": "PASSED",
-        "recognized": False,
-        "unknownFace": True,
-        "bestSimilarity": round(sim_val, 4),
-        "recognitionThreshold": thresh_val,
-        "reason": req.reason or "NO_MATCH_FOUND",
-        "nextAction": "TRACK_UNKNOWN"
-    }
-
-
-# =============================================================================
-# Phase 10B — Unknown Face Tracking (IN-MEMORY SESSION ONLY, NO DB SAVE)
-# =============================================================================
-
-CURRENT_UNKNOWN_TRACKING = {
-    "trackingId": "UNK-0001",
-    "counter": 1,
-    "lastVector": None,
-    "framesTracked": 0,
-    "firstSeen": None,
-    "lastSeen": None,
-    "highestSimilarity": 0.0,
-    "cameraId": "CAM-01-MAIN",
-    "lostFrames": 0
-}
-
-
-class Phase10BTrackingRequest(BaseModel):
-    bestSimilarity: Optional[float] = 0.41
-    liveVector: Optional[List[float]] = None
-    cameraId: Optional[str] = "CAM-01-MAIN"
-    trackingId: Optional[str] = None
-
-
-@app.post("/attendance/track-unknown-10b")
-async def track_unknown_face_phase_10b(req: Phase10BTrackingRequest):
-    """
-    Phase 10B - Unknown Face Tracking Endpoint.
-    Tracks the same unknown face across consecutive frames using cosine similarity (threshold = 0.80).
-    Does NOT save snapshots, does NOT log DB records, does NOT generate alerts.
-    """
-    start_time = time.perf_counter()
-    sim_val = float(req.bestSimilarity if req.bestSimilarity is not None else 0.41)
-    camera_id = req.cameraId or "CAM-01-MAIN"
-    now_ts = datetime.now().isoformat()
-
-    global CURRENT_UNKNOWN_TRACKING
-
-    # If first tracking event or lost tracking
-    if CURRENT_UNKNOWN_TRACKING["lastVector"] is None or CURRENT_UNKNOWN_TRACKING["lostFrames"] > 5:
-        CURRENT_UNKNOWN_TRACKING["counter"] += 1
-        new_id = f"UNK-{CURRENT_UNKNOWN_TRACKING['counter']:04d}"
-        CURRENT_UNKNOWN_TRACKING["trackingId"] = new_id
-        CURRENT_UNKNOWN_TRACKING["framesTracked"] = 1
-        CURRENT_UNKNOWN_TRACKING["firstSeen"] = now_ts
-        CURRENT_UNKNOWN_TRACKING["lastSeen"] = now_ts
-        CURRENT_UNKNOWN_TRACKING["highestSimilarity"] = sim_val
-        CURRENT_UNKNOWN_TRACKING["cameraId"] = camera_id
-        CURRENT_UNKNOWN_TRACKING["lostFrames"] = 0
-        if req.liveVector:
-            CURRENT_UNKNOWN_TRACKING["lastVector"] = req.liveVector
-        tracking_sim = 0.91
-    else:
-        # Measure similarity against previous unknown embedding if provided
-        tracking_sim = 0.91
-        if req.liveVector and CURRENT_UNKNOWN_TRACKING["lastVector"]:
-            try:
-                v1 = np.array(CURRENT_UNKNOWN_TRACKING["lastVector"], dtype=np.float32)
-                v2 = np.array(req.liveVector, dtype=np.float32)
-                n1 = np.linalg.norm(v1)
-                n2 = np.linalg.norm(v2)
-                if n1 > 0 and n2 > 0:
-                    tracking_sim = float(np.dot(v1, v2) / (n1 * n2))
-            except Exception:
-                tracking_sim = 0.91
-
-        if tracking_sim >= 0.80:
-            # Same unknown person
-            CURRENT_UNKNOWN_TRACKING["framesTracked"] += 1
-            CURRENT_UNKNOWN_TRACKING["lastSeen"] = now_ts
-            CURRENT_UNKNOWN_TRACKING["highestSimilarity"] = max(CURRENT_UNKNOWN_TRACKING["highestSimilarity"], sim_val)
-            CURRENT_UNKNOWN_TRACKING["lostFrames"] = 0
-            if req.liveVector:
-                CURRENT_UNKNOWN_TRACKING["lastVector"] = req.liveVector
-        else:
-            # Tracking lost / different unknown person -> Reset
-            CURRENT_UNKNOWN_TRACKING["lostFrames"] += 1
-            if CURRENT_UNKNOWN_TRACKING["lostFrames"] > 5:
-                CURRENT_UNKNOWN_TRACKING["counter"] += 1
-                new_id = f"UNK-{CURRENT_UNKNOWN_TRACKING['counter']:04d}"
-                CURRENT_UNKNOWN_TRACKING["trackingId"] = new_id
-                CURRENT_UNKNOWN_TRACKING["framesTracked"] = 1
-                CURRENT_UNKNOWN_TRACKING["firstSeen"] = now_ts
-                CURRENT_UNKNOWN_TRACKING["lastSeen"] = now_ts
-                CURRENT_UNKNOWN_TRACKING["highestSimilarity"] = sim_val
-                CURRENT_UNKNOWN_TRACKING["lostFrames"] = 0
-                if req.liveVector:
-                    CURRENT_UNKNOWN_TRACKING["lastVector"] = req.liveVector
-
-    frames_count = CURRENT_UNKNOWN_TRACKING["framesTracked"]
-    is_stable = frames_count >= 8
-    tracking_id = CURRENT_UNKNOWN_TRACKING["trackingId"]
-    proc_time_ms = round((time.perf_counter() - start_time) * 1000.0, 1)
-
-    print()
-    print("=" * 50)
-    print("PHASE 10B")
-    print("UNKNOWN FACE TRACKING")
-    print("=" * 50)
-    print(f"Tracking ID ............... {tracking_id}")
-    print("Tracking Started ......... YES")
-    print(f"Frames Tracked ........... {frames_count}")
-    print(f"Tracking Similarity ...... {tracking_sim:.4f}")
-    print(f"Tracking Stable .......... {'YES' if is_stable else 'NO'}")
-    print(f"Camera ID ............... {camera_id}")
-    print("Next Step ............... Confirmation")
-    print(f"Processing Time ......... {proc_time_ms} ms")
-    print("PHASE 10B STATUS ........ PASS")
-    print("=" * 50)
-
-    return {
-        "success": True,
-        "phase": "10B",
-        "phaseStatus": "PASSED",
-        "trackingId": tracking_id,
-        "framesTracked": frames_count,
-        "stableTracking": is_stable,
-        "trackingSimilarity": round(tracking_sim, 4),
-        "cameraId": camera_id,
-        "nextAction": "WAIT_FOR_CONFIRMATION"
-    }
-
-
-# =============================================================================
-# Phase 10C — Unknown Face Confirmation (IN-MEMORY PRESENCE CONFIRMATION ONLY)
-# =============================================================================
-
-CURRENT_UNKNOWN_CONFIRMATION = {
-    "trackingId": "UNK-0001",
-    "confirmationStarted": False,
-    "startMs": None,
-    "framesConfirmed": 0,
-    "visibleDurationMs": 0,
-    "confirmationPassed": False,
-    "cameraId": "CAM-01-MAIN"
-}
-
-
-class Phase10CConfirmationRequest(BaseModel):
-    trackingId: Optional[str] = "UNK-0001"
-    framesTracked: Optional[int] = 8
-    cameraId: Optional[str] = "CAM-01-MAIN"
-    reset: Optional[bool] = False
-
-
-@app.post("/attendance/confirm-unknown-10c")
-async def confirm_unknown_face_phase_10c(req: Phase10CConfirmationRequest):
-    """
-    Phase 10C - Unknown Face Confirmation Endpoint.
-    Confirms presence of tracked unknown face after 3 seconds (3000 ms) and 20 stable frames.
-    Does NOT save images, does NOT write to database, does NOT send notifications/alerts.
-    """
-    start_time = time.perf_counter()
-    global CURRENT_UNKNOWN_CONFIRMATION
-
-    tracking_id = req.trackingId or "UNK-0001"
-    camera_id = req.cameraId or "CAM-01-MAIN"
-
-    if req.reset or CURRENT_UNKNOWN_CONFIRMATION["trackingId"] != tracking_id:
-        CURRENT_UNKNOWN_CONFIRMATION["trackingId"] = tracking_id
-        CURRENT_UNKNOWN_CONFIRMATION["confirmationStarted"] = True
-        CURRENT_UNKNOWN_CONFIRMATION["startMs"] = time.perf_counter()
-        CURRENT_UNKNOWN_CONFIRMATION["framesConfirmed"] = 1
-        CURRENT_UNKNOWN_CONFIRMATION["visibleDurationMs"] = 150
-        CURRENT_UNKNOWN_CONFIRMATION["confirmationPassed"] = False
-        CURRENT_UNKNOWN_CONFIRMATION["cameraId"] = camera_id
-    else:
-        CURRENT_UNKNOWN_CONFIRMATION["framesConfirmed"] += 1
-        elapsed_ms = int((time.perf_counter() - CURRENT_UNKNOWN_CONFIRMATION["startMs"]) * 1000.0) + 150
-        # Boost progress for responsive display
-        if req.framesTracked and req.framesTracked >= 8:
-            elapsed_ms = max(elapsed_ms, req.framesTracked * 160)
-        CURRENT_UNKNOWN_CONFIRMATION["visibleDurationMs"] = elapsed_ms
-        if CURRENT_UNKNOWN_CONFIRMATION["framesConfirmed"] >= 20 or elapsed_ms >= 3000:
-            CURRENT_UNKNOWN_CONFIRMATION["confirmationPassed"] = True
-
-    frames_confirmed = max(CURRENT_UNKNOWN_CONFIRMATION["framesConfirmed"], (req.framesTracked or 8) + 12)
-    duration_ms = max(CURRENT_UNKNOWN_CONFIRMATION["visibleDurationMs"], 3180 if frames_confirmed >= 20 else 1800)
-    conf_passed = frames_confirmed >= 20 or duration_ms >= 3000
-    proc_time_ms = round((time.perf_counter() - start_time) * 1000.0, 1)
-
-    print()
-    print("=" * 50)
-    print("PHASE 10C")
-    print("UNKNOWN FACE CONFIRMATION")
-    print("=" * 50)
-    print(f"Tracking ID .............. {tracking_id}")
-    print("Confirmation Started ..... YES")
-    print(f"Frames Confirmed ......... {frames_confirmed}")
-    print(f"Visible Duration ......... {duration_ms} ms")
-    print("Tracking Stable .......... YES")
-    print(f"Confirmation ............. {'PASSED' if conf_passed else 'PENDING'}")
-    print(f"Ready For Logging ........ {'YES' if conf_passed else 'NO'}")
-    print(f"Processing Time .......... {proc_time_ms} ms")
-    print(f"PHASE 10C STATUS ......... {'PASS' if conf_passed else 'PENDING'}")
-    print("=" * 50)
-
-    return {
-        "success": True,
-        "phase": "10C",
-        "phaseStatus": "PASSED" if conf_passed else "PENDING",
-        "trackingId": tracking_id,
-        "confirmationPassed": conf_passed,
-        "framesConfirmed": frames_confirmed,
-        "visibleDurationMs": duration_ms,
-        "cameraId": camera_id,
-        "nextAction": "DATABASE_LOG" if conf_passed else "WAIT_FOR_CONFIRMATION"
-    }
-
-
-# =============================================================================
-# Phase 10D — Unknown Face Database Logging (TRANSACTION & READBACK VERIFICATION)
-# =============================================================================
-
-class Phase10DLogRequest(BaseModel):
-    trackingId: Optional[str] = "UNK-000001"
-    visibleDurationMs: Optional[int] = 3180
-    framesTracked: Optional[int] = 22
-    bestSimilarity: Optional[float] = 0.41
-    cameraId: Optional[str] = "CAM-01-MAIN"
-    liveVector: Optional[List[float]] = None
-    snapshotPath: Optional[str] = None
-
-
-@app.post("/attendance/log-unknown-10d")
-async def log_unknown_visitor_phase_10d(req: Phase10DLogRequest):
-    """
-    Phase 10D - Unknown Face Database Logging Endpoint.
-    Stores confirmed unknown visitor in PostgreSQL database inside a transaction with readback verification.
-    Only ONE record per continuous visitor session (UPDATES session if visitor remains visible).
-    """
-    start_time = time.perf_counter()
-    tracking_id = req.trackingId or "UNK-000001"
-    camera_id = req.cameraId or "CAM-01-MAIN"
-    vis_duration = req.visibleDurationMs or 3180
-    frames_tracked = req.framesTracked or 22
-    best_sim = float(req.bestSimilarity if req.bestSimilarity is not None else 0.41)
-    snapshot_path = req.snapshotPath or f"/snapshots/unknown_{tracking_id}.jpg"
-
-    # Generate or reuse UnknownVisitor ID (e.g. UV-000001)
-    num_id = "".join(filter(str.isdigit, tracking_id)) or "1"
-    uv_id = f"UV-{int(num_id):06d}"
-
-    # Generate or validate 512-d normalized embedding
-    vec = req.liveVector
-    if not vec or len(vec) != 512:
-        np.random.seed(abs(hash(tracking_id)) % (2**32))
-        v_arr = np.random.randn(512).astype(np.float32)
-        v_arr /= np.linalg.norm(v_arr)
-        vec = v_arr.tolist()
-    else:
-        v_arr = np.array(vec, dtype=np.float32)
-        norm = np.linalg.norm(v_arr)
-        if norm > 0:
-            v_arr /= norm
-        vec = v_arr.tolist()
-
-    # Embedding validation check
-    if len(vec) != 512 or np.isnan(v_arr).any() or np.isinf(v_arr).any():
-        return {
-            "success": False,
-            "phase": "10D",
-            "phaseStatus": "FAILED",
-            "reason": "EMBEDDING_INVALID"
-        }
-
-    db_url = os.getenv("DATABASE_URL") or os.getenv("DIRECT_URL")
-    if not db_url:
-        # Fallback to backend default URL
-        db_url = "postgresql://neondb_owner:npg_7ASYQcWU4psg@ep-dawn-darkness-az899u5i.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
-
-    conn = None
-    try:
-        conn = psycopg2.connect(db_url)
-        cursor = conn.cursor()
-
-        # Ensure unknown_visitors table exists
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS unknown_visitors (
-                id VARCHAR(100) PRIMARY KEY,
-                tracking_id VARCHAR(100) NOT NULL,
-                camera_id VARCHAR(50) NOT NULL,
-                snapshot_path TEXT,
-                embedding_vector JSONB,
-                embedding_dimension INT DEFAULT 512,
-                embedding_normalized BOOLEAN DEFAULT TRUE,
-                date DATE NOT NULL,
-                time TIME NOT NULL,
-                timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-                first_seen TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-                last_seen TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-                visible_duration_ms INT DEFAULT 0,
-                frames_tracked INT DEFAULT 0,
-                highest_similarity FLOAT DEFAULT 0.41,
-                recognition_threshold FLOAT DEFAULT 0.65,
-                detection_confidence FLOAT DEFAULT 0.95,
-                status VARCHAR(50) DEFAULT 'ACTIVE',
-                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-            );
-        """)
-
-        # BEGIN TRANSACTION
-        conn.autocommit = False
-
-        today_d = date.today()
-        now_t = datetime.now().time()
-        now_ts = datetime.now()
-
-        cursor.execute("""
-            INSERT INTO unknown_visitors (
-                id, tracking_id, camera_id, snapshot_path, embedding_vector,
-                embedding_dimension, embedding_normalized, date, time, timestamp,
-                first_seen, last_seen, visible_duration_ms, frames_tracked,
-                highest_similarity, recognition_threshold, detection_confidence, status
-            ) VALUES (
-                %s, %s, %s, %s, %s,
-                %s, %s, %s, %s, %s,
-                %s, %s, %s, %s,
-                %s, %s, %s, %s
-            ) ON CONFLICT (id) DO UPDATE SET
-                last_seen = EXCLUDED.last_seen,
-                visible_duration_ms = EXCLUDED.visible_duration_ms,
-                frames_tracked = EXCLUDED.frames_tracked,
-                updated_at = CURRENT_TIMESTAMP;
-        """, (
-            uv_id, tracking_id, camera_id, snapshot_path,
-            json.dumps(vec), 512, True, today_d, now_t, now_ts,
-            now_ts, now_ts, vis_duration, frames_tracked,
-            best_sim, 0.65, 0.95, "ACTIVE"
-        ))
-
-        # COMMIT
-        conn.commit()
-
-        # READBACK VERIFICATION
-        cursor.execute("SELECT id, tracking_id, visible_duration_ms, frames_tracked, status FROM unknown_visitors WHERE id = %s", (uv_id,))
-        readback_row = cursor.fetchone()
-
-        if not readback_row or readback_row[0] != uv_id or readback_row[1] != tracking_id:
-            conn.rollback()
-            return {
-                "success": False,
-                "phase": "10D",
-                "phaseStatus": "FAILED",
-                "reason": "READBACK_VERIFICATION_FAILED"
-            }
-
-        conn.close()
-    except Exception as exc:
-        if conn:
-            try:
-                conn.rollback()
-                conn.close()
-            except Exception:
-                pass
-        print(f"[Phase 10D] Database Exception: {exc}")
-
-    proc_time_ms = round((time.perf_counter() - start_time) * 1000.0, 1)
-
-    print()
-    print("=" * 50)
-    print("PHASE 10D")
-    print("UNKNOWN DATABASE LOGGING")
-    print("=" * 50)
-    print("Database Transaction ........ PASS")
-    print("Snapshot Selected ........... PASS")
-    print("Embedding Stored ............ PASS")
-    print("Tracking Stored ............. PASS")
-    print("Camera Stored ............... PASS")
-    print("Transaction Commit .......... PASS")
-    print("Readback Verification ....... PASS")
-    print(f"Unknown Visitor ID .......... {uv_id}")
-    print(f"Tracking ID ................. {tracking_id}")
-    print(f"Processing Time ............. {proc_time_ms} ms")
-    print("PHASE 10D STATUS ............ PASS")
-    print("=" * 50)
-
-    return {
-        "success": True,
-        "phase": "10D",
-        "phaseStatus": "PASSED",
-        "databaseSaved": True,
-        "unknownVisitorId": uv_id,
-        "trackingId": tracking_id,
-        "snapshotSaved": True,
-        "embeddingStored": True,
-        "databaseReadback": True,
-        "nextAction": "SECURITY_ALERT_ENGINE"
-    }
-
-
-# =============================================================================
-# Phase 10E — Security Alert Engine (RULE EVALUATION & ALERT PERSISTENCE)
-# =============================================================================
-
-class Phase10EAlertRequest(BaseModel):
-    unknownVisitorId: Optional[str] = "UV-000001"
-    trackingId: Optional[str] = "UNK-000001"
-    visibleDurationMs: Optional[int] = 12400
-    cameraId: Optional[str] = "CAM-01-MAIN"
-    snapshotPath: Optional[str] = None
-
-
-@app.post("/attendance/alert-engine-10e")
-async def evaluate_security_alert_phase_10e(req: Phase10EAlertRequest):
-    """
-    Phase 10E - Security Alert Engine Endpoint.
-    Evaluates alert rules on confirmed unknown visitors and generates color-coded security alerts.
-    Stores alerts in PostgreSQL security_alerts table inside a transaction with readback verification.
-    Suppresses duplicate alerts for the same continuous tracking session.
-    """
-    start_time = time.perf_counter()
-    uv_id = req.unknownVisitorId or "UV-000001"
-    tracking_id = req.trackingId or "UNK-000001"
-    camera_id = req.cameraId or "CAM-01-MAIN"
-    vis_duration = req.visibleDurationMs or 12400
-    snapshot_path = req.snapshotPath or f"/snapshots/unknown_{tracking_id}.jpg"
-
-    # Generate Alert ID (e.g. ALT-000001)
-    num_id = "".join(filter(str.isdigit, tracking_id)) or "1"
-    alert_id = f"ALT-{int(num_id):06d}"
-
-    # Evaluate Alert Rules
-    alert_level = "HIGH"
-    reason = "UNKNOWN_VISITOR_VISIBLE_TOO_LONG"
-
-    if vis_duration >= 20000:
-        alert_level = "CRITICAL"
-        reason = "REPEATED_UNKNOWN_VISITOR_PERSISTENT"
-    elif vis_duration >= 10000:
-        alert_level = "HIGH"
-        reason = "UNKNOWN_VISITOR_VISIBLE_TOO_LONG"
-    else:
-        alert_level = "MEDIUM"
-        reason = "UNREGISTERED_VISITOR_DETECTED"
-
-    db_url = os.getenv("DATABASE_URL") or os.getenv("DIRECT_URL")
-    if not db_url:
-        db_url = "postgresql://neondb_owner:npg_7ASYQcWU4psg@ep-dawn-darkness-az899u5i.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
-
-    conn = None
-    try:
-        conn = psycopg2.connect(db_url)
-        cursor = conn.cursor()
-
-        # Ensure security_alerts table exists
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS security_alerts (
-                alert_id VARCHAR(100) PRIMARY KEY,
-                unknown_visitor_id VARCHAR(100) NOT NULL,
-                tracking_id VARCHAR(100) NOT NULL,
-                camera_id VARCHAR(50) NOT NULL,
-                alert_level VARCHAR(20) NOT NULL DEFAULT 'HIGH',
-                alert_type VARCHAR(100) NOT NULL DEFAULT 'UNREGISTERED_VISITOR_ALERT',
-                reason VARCHAR(255) NOT NULL,
-                snapshot_path TEXT,
-                timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-                resolved BOOLEAN DEFAULT FALSE,
-                resolved_by VARCHAR(100),
-                resolved_at TIMESTAMP WITH TIME ZONE,
-                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-            );
-        """)
-
-        # BEGIN TRANSACTION
-        conn.autocommit = False
-
-        cursor.execute("""
-            INSERT INTO security_alerts (
-                alert_id, unknown_visitor_id, tracking_id, camera_id,
-                alert_level, alert_type, reason, snapshot_path
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (alert_id) DO UPDATE SET
-                alert_level = EXCLUDED.alert_level,
-                reason = EXCLUDED.reason,
-                updated_at = CURRENT_TIMESTAMP;
-        """, (
-            alert_id, uv_id, tracking_id, camera_id,
-            alert_level, "UNREGISTERED_VISITOR_ALERT", reason, snapshot_path
-        ))
-
-        # COMMIT
-        conn.commit()
-
-        # READBACK VERIFICATION
-        cursor.execute("SELECT alert_id, alert_level, reason, resolved FROM security_alerts WHERE alert_id = %s", (alert_id,))
-        readback_row = cursor.fetchone()
-
-        if not readback_row or readback_row[0] != alert_id:
-            conn.rollback()
-            return {
-                "success": False,
-                "phase": "10E",
-                "phaseStatus": "FAILED",
-                "reason": "ALERT_READBACK_FAILED"
-            }
-
-        conn.close()
-    except Exception as exc:
-        if conn:
-            try:
-                conn.rollback()
-                conn.close()
-            except Exception:
-                pass
-        print(f"[Phase 10E] Security Alert DB Exception: {exc}")
-
-    proc_time_ms = round((time.perf_counter() - start_time) * 1000.0, 1)
-
-    print()
-    print("=" * 50)
-    print("PHASE 10E")
-    print("SECURITY ALERT ENGINE")
-    print("=" * 50)
-    print("Unknown Visitor Loaded ........ PASS")
-    print("Alert Rules Evaluated ......... PASS")
-    print("Alert Triggered ............... PASS")
-    print(f"Alert Level ................... {alert_level}")
-    print("Alert Stored .................. PASS")
-    print(f"Processing Time ............... {proc_time_ms} ms")
-    print(f"Alert ID ...................... {alert_id}")
-    print("PHASE 10E STATUS .............. PASS")
-    print("=" * 50)
-
-    return {
-        "success": True,
-        "phase": "10E",
-        "phaseStatus": "PASSED",
-        "alertGenerated": True,
-        "alertId": alert_id,
-        "alertLevel": alert_level,
-        "reason": reason,
-        "cameraId": camera_id,
-        "unknownVisitorId": uv_id,
-        "trackingId": tracking_id,
-        "nextAction": "DISPLAY_SECURITY_ALERT"
-    }
-
-
-# =============================================================================
-# Phase 10F — AI Anti-Spoofing & Liveness Engine (Modular Architecture)
-# =============================================================================
-
-class Phase10FLivenessRequest(BaseModel):
-    image: Optional[str] = None
-    simulateSpoof: Optional[bool] = False
-    attackType: Optional[str] = "PHOTO_ATTACK"
-    cameraId: Optional[str] = "CAM-01-MAIN"
-
-
-@app.post("/attendance/liveness-10f")
-async def evaluate_liveness_phase_10f(req: Phase10FLivenessRequest):
-    """
-    Phase 10F - AI Anti-Spoofing & Liveness Detection Endpoint.
-    Executes BEFORE face recognition. Evaluates 7 modular liveness checks.
-    If LIVE: Allows recognition pipeline to proceed.
-    If SPOOF: Blocks pipeline immediately (0 embeddings generated, 0 recognition, 0 attendance records, 0 unknown logs).
-    """
-    start_time = time.perf_counter()
-    is_spoof = bool(req.simulateSpoof)
-
-    if not is_spoof:
-        modules = [
-            {"name": "Blink Detection", "status": "PASS", "score": 0.98},
-            {"name": "Natural Head Movement", "status": "PASS", "score": 0.95},
-            {"name": "Micro Face Motion", "status": "PASS", "score": 0.94},
-            {"name": "Texture Analysis", "status": "PASS", "score": 0.96},
-            {"name": "Screen Reflection Detection", "status": "PASS", "score": 0.97},
-            {"name": "Print Artifact Detection", "status": "PASS", "score": 0.95},
-            {"name": "Replay Video Detection", "status": "PASS", "score": 0.96},
-        ]
-        liveness_score = 0.96
-        attack_type = None
-        liveness_passed = True
-        next_action = "CONTINUE_RECOGNITION"
-    else:
-        attack_type = req.attackType or "PHOTO_ATTACK"
-        modules = [
-            {"name": "Blink Detection", "status": "FAIL", "score": 0.12},
-            {"name": "Natural Head Movement", "status": "FAIL", "score": 0.15},
-            {"name": "Micro Face Motion", "status": "FAIL", "score": 0.18},
-            {"name": "Texture Analysis", "status": "FAIL", "score": 0.22},
-            {"name": "Screen Reflection Detection", "status": "PASS", "score": 0.95},
-            {"name": "Print Artifact Detection", "status": "FAIL", "score": 0.10},
-            {"name": "Replay Video Detection", "status": "FAIL", "score": 0.14},
-        ]
-        liveness_score = 0.27
-        liveness_passed = False
-        next_action = "BLOCK_PIPELINE"
-
-    proc_time_ms = round((time.perf_counter() - start_time) * 1000.0, 1)
-
-    print()
-    print("=" * 50)
-    print("PHASE 10F")
-    print("ANTI-SPOOFING")
-    print("=" * 50)
-    for m in modules:
-        dots = "." * (25 - len(m['name']))
-        print(f"{m['name']} {dots} {m['status']}")
-
-    if liveness_passed:
-        print(f"Overall Liveness ........... LIVE")
-        print(f"Liveness Score ............. {liveness_score:.2f}")
-        print(f"Processing Time ............ {proc_time_ms} ms")
-        print("PHASE 10F STATUS ........... PASS")
-    else:
-        print(f"Overall Result ............. {attack_type}")
-        print("Attendance Blocked ......... YES")
-        print("Recognition Blocked ........ YES")
-        print("Pipeline Stopped ........... YES")
-        print(f"Processing Time ............ {proc_time_ms} ms")
-        print("PHASE 10F STATUS ........... PASS")
-    print("=" * 50)
-
-    if liveness_passed:
-        return {
-            "success": True,
-            "phase": "10F",
-            "phaseStatus": "PASSED",
-            "livenessPassed": True,
-            "livenessScore": liveness_score,
-            "attackDetected": False,
-            "attackType": None,
-            "nextAction": "CONTINUE_RECOGNITION",
-            "modules": modules
-        }
-    else:
-        return {
-            "success": True,
-            "phase": "10F",
-            "phaseStatus": "PASSED",
-            "livenessPassed": False,
-            "livenessScore": liveness_score,
-            "attackDetected": True,
-            "attackType": attack_type,
-            "nextAction": "BLOCK_PIPELINE",
-            "modules": modules
-        }
-=======
->>>>>>> origin/rohit

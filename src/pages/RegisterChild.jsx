@@ -477,95 +477,15 @@ export default function RegisterChild() {
     // ─── Phase 6C — Database Storage ──────────────────────────────────────
     // Uses the in-memory master embedding and persists to PostgreSQL.
     // Runs ONLY after the Phase 6 end-to-end verification PASSES.
-<<<<<<< HEAD
-    // ─── Phase 6C — Database Storage ──────────────────────────────────────
-    // Uses the in-memory master embedding and persists to PostgreSQL.
-    // Runs ONLY after the Phase 6 end-to-end verification PASSES.
-    const runPhase6C = async (phase6B3Data, verificationData) => {
-      console.log("PHASE 6C STARTED");
-      setPhase6CLoading(true);
-      setPhase6CError(null);
-
-      // Safe extraction of inputs without unsafe .length property access
-      const imagesCapturedCount =
-        (Array.isArray(autoCapture?.capturedImages) ? autoCapture.capturedImages.length : null) ??
-        (typeof autoCapture?.capturedCount === "number" ? autoCapture.capturedCount : null) ??
-        (Array.isArray(galleryFrames) ? galleryFrames.length : null) ??
-        verificationData?.imagesCaptured ??
-        phase6B3Data?.validEmbeddingsUsed ??
-        0;
-
-      const masterEmbedding =
-        phase6B3Data?.masterEmbedding ||
-        verificationData?.masterEmbedding ||
-        null;
-
-      const embeddings =
-        phase6B3Data?.embeddings ||
-        phase6AResult?.embeddings ||
-        null;
-
-      const normalizedEmbeddings =
-        phase6B3Data?.normalizedEmbeddings ||
-        phase6B1Result?.embeddings ||
-        null;
-
-      // Requirement 6: Detailed logging immediately before validation/call
-      console.log("===== PHASE 6C INPUT =====");
-      console.log({
-        verificationResult: verificationData || phase6VerifyResult || null,
-        phase6B3Result: phase6B3Data || phase6B3Result || null,
-        masterEmbedding,
-        embeddings,
-        normalizedEmbeddings,
-      });
-      console.log("==========================");
-
-      // Requirement 5: Add null/undefined validation before execution
-      if (!phase6B3Data || typeof phase6B3Data !== "object") {
-        const errorReason = "Missing phase6B3Result data object";
-        console.error("PHASE 6C FAILED");
-        console.error("Reason:", errorReason);
-        setPhase6CError(errorReason);
-        setPhase6CLoading(false);
-        return;
-      }
-
-      if (!verificationData && !phase6VerifyResult) {
-        const errorReason = "Missing verificationResult data object";
-        console.error("PHASE 6C FAILED");
-        console.error("Reason:", errorReason);
-        setPhase6CError(errorReason);
-        setPhase6CLoading(false);
-        return;
-      }
-
-      console.log("PHASE 6C INPUT VERIFIED PASS");
-
-=======
     const runPhase6C = async (phase6B3Data) => {
       setPhase6CLoading(true);
       setPhase6CError(null);
 
->>>>>>> origin/rohit
       try {
         console.log("[RegisterChild] Starting Phase 6C (database storage)...");
         const payload = {
           sessionId: enrollmentSessionId,
           childId: recordId,
-<<<<<<< HEAD
-          imagesCaptured: imagesCapturedCount,
-          imagesUsed: phase6B3Data?.validEmbeddingsUsed || verificationData?.validEmbeddingsUsed || 0,
-          outliersRemoved: phase6B3Data?.outliersExcluded || verificationData?.outliersExcluded || 0,
-        };
-
-        console.log("PHASE 6C API CALLED PASS");
-        const result = await storeMasterEmbedding(payload);
-
-        if (!cancelled) {
-          setPhase6CResult(result);
-          console.log("PHASE 6C COMPLETED PASS");
-=======
           imagesCaptured: autoCapture.capturedImages.length,
           imagesUsed: phase6B3Data.validEmbeddingsUsed || 0,
           outliersRemoved: phase6B3Data.outliersExcluded || 0,
@@ -573,20 +493,12 @@ export default function RegisterChild() {
         const result = await storeMasterEmbedding(payload);
         if (!cancelled) {
           setPhase6CResult(result);
->>>>>>> origin/rohit
           console.log("[RegisterChild] Phase 6C completed:", result);
         }
       } catch (err) {
         if (!cancelled) {
-<<<<<<< HEAD
-          const errMsg = err?.message || String(err);
-          console.error("PHASE 6C FAILED");
-          console.error("Reason:", errMsg);
-          setPhase6CError(errMsg);
-=======
           console.error("[RegisterChild] Phase 6C error:", err);
           setPhase6CError(err?.message || String(err));
->>>>>>> origin/rohit
         }
       } finally {
         if (!cancelled) {
@@ -635,11 +547,7 @@ export default function RegisterChild() {
         verifyResult.overallStatus === "PASSED" &&
         verifyResult.readyForDatabase
       ) {
-<<<<<<< HEAD
-        await runPhase6C(b3Result, verifyResult);
-=======
         await runPhase6C(b3Result);
->>>>>>> origin/rohit
       }
     };
 
@@ -855,40 +763,7 @@ export default function RegisterChild() {
   const nextStep = () => setCurrentStep((prev) => Math.min(6, prev + 1));
   const prevStep = () => setCurrentStep((prev) => Math.max(1, prev - 1));
 
-<<<<<<< HEAD
-  const handleFormKeyDown = (e) => {
-    if (e.key === "Enter") {
-      if (e.target.tagName === "BUTTON") {
-        return;
-      }
-      e.preventDefault();
-
-      const form = e.currentTarget;
-      const focusable = Array.from(
-        form.querySelectorAll(
-          "input:not([type='hidden']):not([type='file']):not([disabled]), select:not([disabled]), textarea:not([disabled])"
-        )
-      ).filter((el) => el.offsetWidth > 0 && el.offsetHeight > 0);
-
-      const currentIndex = focusable.indexOf(e.target);
-
-      if (currentIndex > -1 && currentIndex < focusable.length - 1) {
-        focusable[currentIndex + 1].focus();
-      } else if (currentIndex === focusable.length - 1 || currentIndex === -1) {
-        if (currentStep < 6) {
-          nextStep();
-        }
-      }
-    }
-  };
-
   const onSubmit = async (values) => {
-    if (currentStep < 6) {
-      return;
-    }
-=======
-  const onSubmit = async (values) => {
->>>>>>> origin/rohit
     try {
       setSubmitting(true);
 
@@ -921,16 +796,7 @@ export default function RegisterChild() {
 
       const photoFile = values.photo?.[0];
       const response = await childrenService.create(childData, photoFile);
-<<<<<<< HEAD
-      const createdChildId =
-        response?.data?.id ||
-        response?.id ||
-        response?.data?.childCode ||
-        response?.childCode ||
-        recordId;
-=======
       const createdChildId = response?.data?.id || response?.id;
->>>>>>> origin/rohit
 
       if (createdChildId) {
         try {
@@ -955,10 +821,6 @@ export default function RegisterChild() {
             sampleFaceFrames = galleryFrames.map((frame, idx) => {
               const poseKey = poseKeys[idx % poseKeys.length];
               return {
-<<<<<<< HEAD
-                childId: createdChildId,
-=======
->>>>>>> origin/rohit
                 pose: poseMapping[poseKey] || "FRONT_NEUTRAL",
                 imageBase64: frame,
                 lightingQuality: 95,
@@ -967,10 +829,6 @@ export default function RegisterChild() {
             });
           } else {
             sampleFaceFrames = facialAngles.map((angle) => ({
-<<<<<<< HEAD
-              childId: createdChildId,
-=======
->>>>>>> origin/rohit
               pose: poseMapping[angle.id] || "FRONT_NEUTRAL",
               imageBase64: capturedAnglePhotos[angle.id] || photoPreview || dataUriForUnknown(),
               lightingQuality: 95,
@@ -978,16 +836,7 @@ export default function RegisterChild() {
             }));
           }
 
-<<<<<<< HEAD
-          const currentMasterEmbedding =
-            phase6B3Result?.masterEmbedding ||
-            phase6VerifyResult?.masterEmbedding ||
-            phase6CResult?.masterEmbedding;
-
-          await childrenService.completeFaceEnrollment(createdChildId, sampleFaceFrames, currentMasterEmbedding);
-=======
           await childrenService.completeFaceEnrollment(createdChildId, sampleFaceFrames);
->>>>>>> origin/rohit
         } catch (enrollErr) {
           console.warn("AI Face Enrollment notice:", enrollErr);
         }
@@ -1075,21 +924,7 @@ export default function RegisterChild() {
       </div>
 
       {/* Main Form */}
-<<<<<<< HEAD
-      <form
-        onSubmit={(e) => {
-          if (currentStep < 6) {
-            e.preventDefault();
-            return;
-          }
-          handleSubmit(onSubmit)(e);
-        }}
-        onKeyDown={handleFormKeyDown}
-        className="grid gap-6 grid-cols-1 lg:grid-cols-12 items-start"
-      >
-=======
       <form onSubmit={handleSubmit(onSubmit)} className="grid gap-6 grid-cols-1 lg:grid-cols-12 items-start">
->>>>>>> origin/rohit
         <div className="lg:col-span-8">
           <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-card dark:border-slate-800 dark:bg-slate-900 min-h-[520px] flex flex-col justify-between">
             <div>

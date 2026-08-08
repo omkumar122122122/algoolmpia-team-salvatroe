@@ -57,13 +57,6 @@ export class PrismaService
   }
 
   async onModuleInit() {
-<<<<<<< HEAD
-    try {
-      await this.$connect();
-      this.logger.log('Prisma connected to primary database');
-    } catch (err) {
-      this.logger.error(`Initial Prisma connection error: ${(err as Error).message}`);
-=======
     let retries = 5;
     let connected = false;
     while (retries > 0 && !connected) {
@@ -82,7 +75,6 @@ export class PrismaService
           this.logger.error(`Initial Prisma connection error: ${err.message}`);
         }
       }
->>>>>>> origin/rohit
     }
 
     // Log slow queries in development

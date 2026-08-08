@@ -111,50 +111,6 @@ export class ChildFaceEnrollmentService {
     ipAddress?: string,
     userAgent?: string
   ): Promise<CompleteEnrollmentResponseDto> {
-<<<<<<< HEAD
-    console.log('[FaceEnrollmentService] === ENTERING SERVICE ===');
-    console.log('[FaceEnrollmentService] DTO childId:', dto?.childId);
-    console.log('[FaceEnrollmentService] Captured frames count:', dto?.capturedFrames?.length);
-    console.log('[FaceEnrollmentService] User ID:', userId);
-
-    const { childId, capturedFrames } = dto;
-
-    // 1. Fetch Child Record (by ID or childCode)
-    console.log('[FaceEnrollmentService] [DB Step 1] Querying Child by ID or Code:', childId);
-    let child: any;
-    try {
-      child = await this.prisma.child.findFirst({
-        where: {
-          OR: [
-            { id: childId },
-            { childCode: childId }
-          ],
-          deletedAt: null,
-        },
-        select: {
-          id: true,
-          childCode: true,
-          firstName: true,
-          lastName: true,
-          orphanageId: true,
-        },
-      });
-      console.log('[FaceEnrollmentService] [DB Step 1 SUCCESS] Found child:', child ? `id=${child.id}, code=${child.childCode}` : 'NULL');
-    } catch (error: any) {
-      console.error('[FaceEnrollmentService] [DB Step 1 FAILED] Error querying Child:', error);
-      console.error('Error code:', error?.code);
-      console.error('Error meta:', error?.meta);
-      console.error('Stack:', error?.stack);
-      throw error;
-    }
-
-    if (!child) {
-      console.error(`[FaceEnrollmentService] Child with ID or Code '${childId}' not found in database.`);
-      throw new NotFoundException(`Child with ID or Code '${childId}' not found.`);
-    }
-
-    const realChildUuid = child.id;
-=======
     const { childId, capturedFrames } = dto;
 
     // 1. Fetch Child Record
@@ -173,61 +129,19 @@ export class ChildFaceEnrollmentService {
       throw new NotFoundException(`Child with ID ${childId} not found.`);
     }
 
->>>>>>> origin/rohit
     const childName = `${child.firstName} ${child.lastName || ''}`.trim();
 
     // 2. Validate all 7 required poses are captured
     const capturedPoses = new Set(capturedFrames.map((f) => f.pose));
-<<<<<<< HEAD
-    console.log('[FaceEnrollmentService] Captured poses:', Array.from(capturedPoses));
     const missingPoses = this.REQUIRED_POSES.filter((pose) => !capturedPoses.has(pose));
 
     if (missingPoses.length > 0) {
-      console.warn('[FaceEnrollmentService] Missing poses:', missingPoses);
-=======
-    const missingPoses = this.REQUIRED_POSES.filter((pose) => !capturedPoses.has(pose));
-
-    if (missingPoses.length > 0) {
->>>>>>> origin/rohit
       throw new BadRequestException(
         `Enrollment incomplete. Missing required facial poses: ${missingPoses.join(', ')}`
       );
     }
 
     // 3. Generate 512-d Encrypted Biometric Embedding Vector
-<<<<<<< HEAD
-    console.log('[FaceEnrollmentService] Generating 512-d embedding vector...');
-    const embeddingData = this.embeddingGenerator.generateEmbedding(realChildUuid, capturedFrames.length);
-    console.log('[FaceEnrollmentService] Embedding generated successfully. Model:', embeddingData?.modelVersion);
-
-    // 4. Duplicate Face Check against Database Enrolled Biometrics
-    try {
-      console.log('[FaceEnrollmentService] [DB Step 2] Checking for duplicate face embeddings...');
-      await this.duplicateDetector.checkForDuplicateChild(realChildUuid, embeddingData.vector);
-      console.log('[FaceEnrollmentService] [DB Step 2 SUCCESS] Duplicate check passed');
-    } catch (error: any) {
-      console.error('[FaceEnrollmentService] [DB Step 2 FAILED] Duplicate face check error:', error);
-      console.error('Error code:', error?.code);
-      console.error('Error meta:', error?.meta);
-      console.error('Stack:', error?.stack);
-      
-      try {
-        await this.childrenRepository.createAuditLog({
-          userId,
-          action: 'AI_FACE_ENROLLMENT_FAILED',
-          resource: 'Child',
-          resourceId: realChildUuid,
-          details: {
-            reason: 'Duplicate Face Detected',
-            error: error?.message,
-          },
-          ipAddress,
-          userAgent,
-        });
-      } catch (auditErr) {
-        console.error('[FaceEnrollmentService] Audit log write failed:', auditErr);
-      }
-=======
     const embeddingData = this.embeddingGenerator.generateEmbedding(childId, capturedFrames.length);
 
     // 4. Duplicate Face Check against Database Enrolled Biometrics
@@ -247,7 +161,6 @@ export class ChildFaceEnrollmentService {
         ipAddress,
         userAgent,
       });
->>>>>>> origin/rohit
 
       throw error;
     }
@@ -265,154 +178,6 @@ export class ChildFaceEnrollmentService {
     }, 0);
     const averageQualityScore = Math.round(totalQuality / capturedFrames.length);
 
-<<<<<<< HEAD
-    // Verify if userId exists in database to avoid foreign key failure on capturedBy
-    let validCapturedBy: string | null = null;
-    if (userId) {
-      try {
-        const u = await this.prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
-        if (u) validCapturedBy = u.id;
-      } catch (uErr) {
-        console.warn('[FaceEnrollmentService] User lookup for capturedBy notice:', uErr);
-      }
-    }
-
-    // 6. Execute Prisma Transaction
-    console.log('[FaceEnrollmentService] [DB Step 3] Starting Prisma Transaction...');
-    try {
-      await this.prisma.$transaction(async (prismaTx) => {
-        // 6a. Upsert BiometricData record using real master embedding
-        console.log('[FaceEnrollmentService] [Tx Sub-Step 3a] Processing BiometricData for child UUID:', realChildUuid);
-        try {
-          const existingBio = await prismaTx.biometricData.findFirst({
-            where: {
-              childId: realChildUuid,
-              type: 'FACE_RECOGNITION',
-            },
-            orderBy: { createdAt: 'desc' },
-          });
-
-          let finalEncodingJson: string = embeddingData.encryptedJson;
-          if (dto.masterEmbedding && Array.isArray(dto.masterEmbedding) && dto.masterEmbedding.length === 512) {
-            finalEncodingJson = JSON.stringify(dto.masterEmbedding);
-            console.log('[FaceEnrollmentService] Using real masterEmbedding passed in DTO (length: 512)');
-          } else if (existingBio && existingBio.faceEncodingJson) {
-            finalEncodingJson = existingBio.faceEncodingJson;
-            console.log('[FaceEnrollmentService] Retaining existing real faceEncodingJson from Phase 6C');
-          }
-
-          if (existingBio) {
-            await prismaTx.biometricData.update({
-              where: { id: existingBio.id },
-              data: {
-                faceEncodingJson: finalEncodingJson,
-                faceImageUrl: bestProfile.bestImageUrl,
-                faceModelVersion: embeddingData.modelVersion,
-                quality: averageQualityScore,
-                isActive: true,
-                notes: `Enrolled with ${capturedFrames.length} poses. Checksum: ${embeddingData.checksum.substring(0, 16)}`,
-              },
-            });
-            console.log('[FaceEnrollmentService] [Tx Sub-Step 3a SUCCESS] BiometricData updated, ID:', existingBio.id);
-          } else {
-            const bioRecord = await prismaTx.biometricData.create({
-              data: {
-                childId: realChildUuid,
-                type: 'FACE_RECOGNITION',
-                capturedAt: new Date(),
-                capturedBy: validCapturedBy,
-                faceEncodingJson: finalEncodingJson,
-                faceImageUrl: bestProfile.bestImageUrl,
-                faceModelVersion: embeddingData.modelVersion,
-                quality: averageQualityScore,
-                isActive: true,
-                notes: `Enrolled with ${capturedFrames.length} poses. Checksum: ${embeddingData.checksum.substring(0, 16)}`,
-              },
-            });
-            console.log('[FaceEnrollmentService] [Tx Sub-Step 3a SUCCESS] BiometricData created, ID:', bioRecord.id);
-          }
-        } catch (subErr: any) {
-          console.error('[FaceEnrollmentService] [Tx Sub-Step 3a FAILED] BiometricData save error:', subErr);
-          console.error('Error code:', subErr?.code);
-          console.error('Error meta:', subErr?.meta);
-          console.error('Stack:', subErr?.stack);
-          throw subErr;
-        }
-
-        // 6b. Update Child Entity Flags
-        console.log('[FaceEnrollmentService] [Tx Sub-Step 3b] Updating Child entity UUID:', realChildUuid);
-        try {
-          await prismaTx.child.update({
-            where: { id: realChildUuid },
-            data: {
-              photo: bestProfile.bestImageUrl,
-              currentStatus: 'REGISTERED',
-            },
-          });
-          console.log('[FaceEnrollmentService] [Tx Sub-Step 3b SUCCESS] Child updated successfully');
-        } catch (subErr: any) {
-          console.error('[FaceEnrollmentService] [Tx Sub-Step 3b FAILED] Child.update error:', subErr);
-          console.error('Error code:', subErr?.code);
-          console.error('Error meta:', subErr?.meta);
-          console.error('Stack:', subErr?.stack);
-          throw subErr;
-        }
-
-        // 6c. Enable face recognition flag on orphanage if assigned
-        if (child.orphanageId) {
-          console.log('[FaceEnrollmentService] [Tx Sub-Step 3c] Updating Orphanage ID:', child.orphanageId);
-          try {
-            await prismaTx.orphanage.update({
-              where: { id: child.orphanageId },
-              data: {
-                faceRecognitionEnabled: true,
-                biometricAttendanceEnabled: true,
-              },
-            });
-            console.log('[FaceEnrollmentService] [Tx Sub-Step 3c SUCCESS] Orphanage updated successfully');
-          } catch (subErr: any) {
-            console.error('[FaceEnrollmentService] [Tx Sub-Step 3c FAILED] Orphanage.update error:', subErr);
-            console.error('Error code:', subErr?.code);
-            console.error('Error meta:', subErr?.meta);
-            console.error('Stack:', subErr?.stack);
-            throw subErr;
-          }
-        }
-      });
-      console.log('[FaceEnrollmentService] [DB Step 3 SUCCESS] Prisma Transaction COMMITTED');
-    } catch (txErr: any) {
-      console.error('[FaceEnrollmentService] [DB Step 3 FAILED] Prisma Transaction ROLLED BACK:', txErr);
-      console.error('Error message:', txErr?.message);
-      console.error('Error code:', txErr?.code);
-      console.error('Error meta:', txErr?.meta);
-      console.error('Stack:', txErr?.stack);
-      throw txErr;
-    }
-
-    // 7. Audit Log Recording
-    console.log('[FaceEnrollmentService] [DB Step 4] Writing Audit Log...');
-    try {
-      await this.childrenRepository.createAuditLog({
-        userId: validCapturedBy || userId,
-        action: 'AI_FACE_ENROLLMENT_COMPLETED',
-        resource: 'Child',
-        resourceId: realChildUuid,
-        details: {
-          childCode: child.childCode,
-          fullName: childName,
-          qualityScore: averageQualityScore,
-          modelVersion: embeddingData.modelVersion,
-          posesCapturedCount: capturedFrames.length,
-          selectedProfilePose: bestProfile.selectedPose,
-        },
-        ipAddress,
-        userAgent,
-      });
-      console.log('[FaceEnrollmentService] [DB Step 4 SUCCESS] Audit Log recorded');
-    } catch (auditErr: any) {
-      console.error('[FaceEnrollmentService] [DB Step 4 NOTICE] Audit Log error (non-fatal):', auditErr?.message);
-    }
-=======
     // 6. Execute Prisma Transaction
     await this.prisma.$transaction(async (prismaTx) => {
       // 6a. Create BiometricData record
@@ -469,34 +234,18 @@ export class ChildFaceEnrollmentService {
       ipAddress,
       userAgent,
     });
->>>>>>> origin/rohit
 
     // 8. Trigger Admin Success Notification
     const orphanageName = child.orphanageId
       ? await this.childrenRepository.findOrphanageName(child.orphanageId)
       : 'Care Center';
 
-<<<<<<< HEAD
-    try {
-      this.notificationService.notifyAdminsOnRegistration({
-        childName: `${childName} (AI Enrollment Completed)`,
-        childCode: child.childCode,
-        orphanageName,
-        childId: child.id,
-      });
-    } catch (notifErr: any) {
-      console.warn('[FaceEnrollmentService] Admin notification notice:', notifErr?.message);
-    }
-
-    console.log('[FaceEnrollmentService] === EXITING SERVICE SUCCESS ===');
-=======
     this.notificationService.notifyAdminsOnRegistration({
       childName: `${childName} (AI Enrollment Completed)`,
       childCode: child.childCode,
       orphanageName,
       childId: child.id,
     });
->>>>>>> origin/rohit
 
     this.logger.log(
       `AI Face Enrollment completed successfully for child ${childName} (${child.childCode}) with quality score ${averageQualityScore}%`

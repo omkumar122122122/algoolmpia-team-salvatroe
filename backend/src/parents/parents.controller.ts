@@ -10,10 +10,7 @@ import {
   UseGuards,
   UseInterceptors,
   UploadedFile,
-<<<<<<< HEAD
-=======
   UploadedFiles,
->>>>>>> origin/rohit
   HttpCode,
   HttpStatus,
   BadRequestException,
@@ -26,11 +23,7 @@ import {
   ApiBody,
   ApiConsumes,
 } from '@nestjs/swagger';
-<<<<<<< HEAD
-import { FileInterceptor } from '@nestjs/platform-express';
-=======
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
->>>>>>> origin/rohit
 import { memoryStorage } from 'multer';
 import { ParentsService } from './services/parents.service';
 import {
@@ -363,8 +356,6 @@ async registerParent(@Body() dto: RegisterParentDto) {
     );
   }
 
-<<<<<<< HEAD
-=======
   @Post(':id/documents/batch')
   @Roles(Role.ADMIN, Role.PARENT)
   @UseInterceptors(
@@ -411,7 +402,6 @@ async registerParent(@Body() dto: RegisterParentDto) {
     );
   }
 
->>>>>>> origin/rohit
   @Patch(':id/documents/:docId')
   @Roles(Role.ADMIN)
   @HttpCode(HttpStatus.OK)

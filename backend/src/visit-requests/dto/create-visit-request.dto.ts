@@ -9,10 +9,7 @@ import {
   IsOptional,
   IsBoolean,
   IsUUID,
-<<<<<<< HEAD
-=======
   ValidateIf,
->>>>>>> origin/rohit
   MinLength,
   MaxLength,
   Matches,
@@ -133,12 +130,8 @@ export class CreateVisitRequestDto {
     example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
     required: false,
   })
-<<<<<<< HEAD
-  @IsUUID()
-=======
   @ValidateIf((o) => !!o.childId)
   @IsUUID(undefined, { message: 'childId must be a valid UUID' })
->>>>>>> origin/rohit
   @IsOptional()
   childId?: string;
 }

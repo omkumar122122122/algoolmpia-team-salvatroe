@@ -17,16 +17,6 @@ import {
   ApiTooManyRequestsResponse,
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
-<<<<<<< HEAD
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../common/decorators/roles.decorator';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { Role } from '../common/enums/role.enum';
-import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
-import { ChatService } from './services/chat.service';
-import { SendChatMessageDto, ChatReplyDto } from './dto';
-=======
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -35,7 +25,6 @@ import { Role } from '../../common/enums/role.enum';
 import { JwtPayload } from '../../auth/interfaces/jwt-payload.interface';
 import { ChatService } from './chat.service';
 import { SendChatMessageDto, ChatReplyDto } from '../dto';
->>>>>>> origin/rohit
 
 @ApiTags('Chat')
 @Controller('chat')

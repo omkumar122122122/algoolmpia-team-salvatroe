@@ -54,13 +54,6 @@ export class TokenService {
     // Extend refresh TTL for "remember me"
     const refreshExpiresIn = options?.rememberMe ? '30d' : refreshConfig.expiresIn;
 
-<<<<<<< HEAD
-    // Build payloads
-    const accessPayload: JwtPayload = {
-      sub: userId,
-      email,
-      role,
-=======
     // Lookup associated orphanageId if role is ORPHANAGE
     let orphanageId: string | undefined = undefined;
     if (role === Role.ORPHANAGE) {
@@ -88,22 +81,16 @@ export class TokenService {
       email,
       role,
       ...(orphanageId && { orphanageId }),
->>>>>>> origin/rohit
       type: TOKEN_TYPE_ACCESS,
       jti: accessJti,
     };
 
     const refreshPayload: RefreshTokenPayload = {
       sub: userId,
-<<<<<<< HEAD
-      email,
-      role,
-=======
       userId,
       email,
       role,
       ...(orphanageId && { orphanageId }),
->>>>>>> origin/rohit
       type: TOKEN_TYPE_REFRESH,
       jti: refreshJti,
       parentJti: options?.parentJti,

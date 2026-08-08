@@ -57,9 +57,6 @@ export class ChildRegistrationValidator {
       throw new BadRequestException('Chronic condition details must be provided if hasChronicCondition is true.');
     }
 
-<<<<<<< HEAD
-    // 5. Note: Duplicate child names are allowed (children are uniquely identified by ID/childCode and biometric vector).
-=======
     // 5. Duplicate Child Check (Name + DOB / Approximate Age inside target orphanage)
     if (orphanageId) {
       const isDuplicate = await this.childrenRepository.checkDuplicateChild({
@@ -75,6 +72,5 @@ export class ChildRegistrationValidator {
         );
       }
     }
->>>>>>> origin/rohit
   }
 }

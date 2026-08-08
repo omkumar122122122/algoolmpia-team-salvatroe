@@ -27,11 +27,8 @@ import {
   RequestDocumentsDto,
   CompleteVisitDto,
   CancelVisitRequestDto,
-<<<<<<< HEAD
-=======
   RespondRescheduleDto,
   NoShowVisitDto,
->>>>>>> origin/rohit
   VisitRequestResponseDto,
   VisitRequestListResponseDto,
   VisitRequestListItemDto,
@@ -82,35 +79,12 @@ export class VisitRequestsController {
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
-<<<<<<< HEAD
-  async findAll(
-=======
   findAll(
->>>>>>> origin/rohit
     @Query() queryDto: QueryVisitRequestDto,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') userRole: Role,
   ): Promise<VisitRequestListResponseDto> {
-<<<<<<< HEAD
-    console.log('[VisitRequestsController] === ENTERING GET /visit-requests ===');
-    console.log('[VisitRequestsController] Query DTO:', queryDto);
-    console.log('[VisitRequestsController] User ID:', userId, 'Role:', userRole);
-
-    try {
-      const result = await this.visitRequestsService.findAll(queryDto, userId, userRole);
-      console.log('[VisitRequestsController] === EXITING GET /visit-requests SUCCESS ===');
-      return result;
-    } catch (e: any) {
-      console.error('[VisitRequestsController] === EXCEPTION IN GET /visit-requests ===');
-      console.error(e);
-      console.error('Code:', e?.code);
-      console.error('Meta:', e?.meta);
-      console.error('Stack:', e?.stack);
-      throw e;
-    }
-=======
     return this.visitRequestsService.findAll(queryDto, userId, userRole);
->>>>>>> origin/rohit
   }
 
   @Get('my-requests')
@@ -293,8 +267,6 @@ export class VisitRequestsController {
   ) {
     return this.visitRequestsService.cancel(id, cancelDto, userId);
   }
-<<<<<<< HEAD
-=======
 
   @Patch(':id/respond-reschedule')
   @Roles(Role.PARENT)
@@ -349,5 +321,4 @@ export class VisitRequestsController {
   ) {
     return this.visitRequestsService.noShow(id, noShowDto, userId, userRole);
   }
->>>>>>> origin/rohit
 }

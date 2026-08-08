@@ -139,8 +139,6 @@ export const orphanagesService = {
     const response = await apiClient.get('/orphanages/dashboard/safety-chart');
     return unwrap(response);
   },
-<<<<<<< HEAD
-=======
 
   /**
    * Reset orphanage account password (Admin only)
@@ -163,5 +161,4 @@ export const orphanagesService = {
     const response = await apiClient.patch(`/orphanages/${id}/toggle-status`, { isActive });
     return unwrap(response);
   },
->>>>>>> origin/rohit
 };

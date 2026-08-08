@@ -11,6 +11,8 @@ import AssessmentWizard from "../components/PostAdoption/AssessmentWizard";
 import { postAdoptionService } from "../services/postAdoptionService";
 import { PageSkeleton } from "../components/Loader";
 
+import heroBanner from "../assets/image copy.png";
+
 export default function PostAdoptionMonitoring() {
   const [loading, setLoading] = useState(true);
   const [schedules, setSchedules] = useState([]);
@@ -69,22 +71,31 @@ export default function PostAdoptionMonitoring() {
       {/* Breadcrumb Navigation */}
       <Breadcrumb items={[{ label: "Parent Portal", path: "/parent" }, { label: "Post Adoption Monitoring" }]} />
 
-      {/* Hero Banner */}
+      {/* Hero Banner Card matching Parent Dashboard */}
       <motion.header
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 p-6 text-white shadow-xl sm:p-8"
+        className="relative overflow-hidden rounded-[24px] border border-slate-200/80 bg-white/85 p-5 sm:p-6 lg:p-7 shadow-card backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/85"
       >
-        <div className="absolute right-0 top-0 -mr-16 -mt-16 h-64 w-64 rounded-full bg-blue-500/10 blur-3xl" />
+        {/* Background Card Image */}
+        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+          <img 
+            src={heroBanner} 
+            alt="Hero Card Background" 
+            className="h-full w-full object-cover object-right opacity-35 dark:opacity-25 transition-opacity" 
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-white via-white/80 to-transparent dark:from-slate-900 dark:via-slate-900/80 dark:to-transparent" />
+        </div>
+
         <div className="relative z-10 grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
           <div>
-            <div className="mb-3 inline-flex items-center gap-2 rounded-lg bg-blue-500/20 px-3.5 py-1.5 text-xs font-bold text-blue-200 border border-blue-400/30 backdrop-blur-md">
-              <FiShield className="h-4 w-4 text-emerald-400" /> Child Welfare Compliance Standard
+            <div className="mb-3 inline-flex items-center gap-2 rounded-lg bg-emerald-500/10 px-3.5 py-1.5 text-xs font-bold text-emerald-700 border border-emerald-500/20 backdrop-blur-md dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30">
+              <FiShield className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /> Child Welfare Compliance Standard
             </div>
-            <h1 className="text-3xl font-extrabold text-white sm:text-4xl tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0F172A] dark:text-white font-display tracking-tight">
               Post-Adoption Welfare Monitoring
             </h1>
-            <p className="mt-2 max-w-2xl text-sm font-medium text-blue-100/90 leading-relaxed sm:text-base">
+            <p className="mt-2 max-w-2xl text-xs sm:text-sm text-[#64748B] dark:text-slate-300 leading-relaxed font-sans">
               Every adopted child completes an AI-assisted 6-month welfare assessment until age 16. Ensure safety, emotional health, and family bonding through regular checks.
             </p>
           </div>

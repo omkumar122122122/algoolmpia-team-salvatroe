@@ -11,20 +11,14 @@ export const roleHome = {
   admin:     "/admin",
   parent:    "/parent",
   orphanage: "/orphanage",
-<<<<<<< HEAD
-=======
   donor:     "/donor",
->>>>>>> origin/rohit
 };
 
 export const roleLabels = {
   admin:     "Administrator",
   parent:    "Parent",
   orphanage: "Orphanage",
-<<<<<<< HEAD
-=======
   donor:     "Donor",
->>>>>>> origin/rohit
 };
 
 export const riskClasses = {
