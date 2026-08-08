@@ -19,9 +19,26 @@ function complianceColor(val) {
 }
 
 function occupancyBar(occupancy, capacity) {
-  const pct = Math.min(100, Math.round((occupancy / capacity) * 100));
-  const color = pct >= 90 ? "bg-red-500" : pct >= 75 ? "bg-amber-500" : "bg-green-500";
-  return { pct, color };
+  const occ = Math.max(0, Number(occupancy) || 0);
+  const cap = Math.max(0, Number(capacity) || 0);
+
+  if (!cap || cap <= 0 || isNaN(occ) || isNaN(cap)) {
+    return { pct: 0, color: "bg-slate-200 dark:bg-slate-700", text: "0%" };
+  }
+
+  const rawPct = (occ / cap) * 100;
+  const pct = Math.min(100, Math.max(0, Math.round(rawPct)));
+
+  let color = "bg-green-500";
+  if (pct === 0) {
+    color = "bg-slate-200 dark:bg-slate-700";
+  } else if (pct >= 90) {
+    color = "bg-red-500";
+  } else if (pct >= 75) {
+    color = "bg-amber-500";
+  }
+
+  return { pct, color, text: `${pct}%` };
 }
 
 function statusTone(status) {
@@ -89,7 +106,8 @@ export default function Orphanages() {
       setLoading(true);
       setError(null);
       const result = await orphanagesService.getAll({ limit: 100 });
-      setRawOrphanages(result.data || []);
+      const records = Array.isArray(result) ? result : (result?.data || []);
+      setRawOrphanages(records);
     } catch (err) {
       console.error("Failed to load orphanages:", err);
       setError(err.message || "Failed to load orphanages");
@@ -110,7 +128,11 @@ export default function Orphanages() {
 
       const isComplete = missingFields.length === 0;
 
-      // Extract facilities text or AI array
+      const occ = Math.max(0, Number(item.occupancy ?? item.currentOccupancy ?? item.numberOfChildren) || 0);
+      const cap = Math.max(0, Number(item.capacity ?? item.totalCapacity) || 0);
+
+      const { pct, color, text: occupancyRateText } = occupancyBar(occ, cap);
+
       const facilitiesList = Array.isArray(item.facilities)
         ? item.facilities
         : typeof item.facilities === "string"
@@ -119,9 +141,12 @@ export default function Orphanages() {
 
       return {
         ...item,
-        occupancyRate: percentage(item.occupancy, item.capacity),
-        complianceRate: item.compliance ?? item.complianceScore ?? 0,
-        ...occupancyBar(item.occupancy, item.capacity),
+        occupancy: occ,
+        capacity: cap,
+        occupancyRate: occupancyRateText,
+        pct,
+        color,
+        complianceRate: Math.max(0, Number(item.compliance ?? item.complianceScore) || 0),
         missingFields,
         isComplete,
         facilitiesList,

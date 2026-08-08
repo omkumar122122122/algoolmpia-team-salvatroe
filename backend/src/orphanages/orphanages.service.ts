@@ -351,20 +351,20 @@ export class OrphanagesService {
     const where: Prisma.OrphanageWhereInput = {
       deletedAt: null,
       ...(isActive !== undefined && { isActive }),
-      ...(status && { status }),
+      ...(status && (status as any) !== 'all' && { status }),
       ...(isVerified !== undefined && { isVerified }),
-      ...(organizationType && { organizationType: organizationType as OrganizationType }),
+      ...(organizationType && organizationType !== 'all' && { organizationType: organizationType as OrganizationType }),
       ...(minCompliance !== undefined && {
         complianceScore: { gte: minCompliance },
       }),
       ...(maxCompliance !== undefined && {
         complianceScore: { lte: maxCompliance },
       }),
-      ...(city && { city: { contains: city, mode: 'insensitive' } }),
-      ...(state && { state: { contains: state, mode: 'insensitive' } }),
+      ...(city && city !== 'all' && { city: { contains: city, mode: 'insensitive' } }),
+      ...(state && state !== 'all' && { state: { contains: state, mode: 'insensitive' } }),
     };
 
-    if (search) {
+    if (search && search.trim() !== '') {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
         { code: { contains: search, mode: 'insensitive' } },
@@ -378,7 +378,7 @@ export class OrphanagesService {
       ];
     }
 
-    if (ownerSearch) {
+    if (ownerSearch && ownerSearch !== 'all' && ownerSearch.trim() !== '') {
       where.OR = [
         ...(where.OR || []),
         { emergencyContactPerson: { contains: ownerSearch, mode: 'insensitive' } },

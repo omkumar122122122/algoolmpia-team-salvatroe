@@ -3,6 +3,8 @@ export function classNames(...classes) {
 }
 
 export function percentage(value, max) {
-  if (!max) return "0%";
-  return `${Math.round((value / max) * 100)}%`;
+  const val = Number(value) || 0;
+  const mx = Number(max) || 0;
+  if (!mx || mx <= 0 || isNaN(val) || isNaN(mx)) return "0%";
+  return `${Math.min(100, Math.max(0, Math.round((val / mx) * 100)))}%`;
 }
