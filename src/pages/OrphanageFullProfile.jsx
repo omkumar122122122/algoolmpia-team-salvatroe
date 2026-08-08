@@ -26,8 +26,9 @@ export default function OrphanageFullProfile() {
     try {
       setLoading(true);
       setError(null);
-      const data = await orphanagesService.getProfile(orphanageId);
-      setOrphanage(data);
+      const res = await orphanagesService.getProfile(orphanageId);
+      const payload = res?.data?.name ? res.data : res;
+      setOrphanage(payload);
     } catch (err) {
       console.error('Failed to load profile:', err);
       setError(err.message || 'Failed to load profile');
@@ -40,7 +41,7 @@ export default function OrphanageFullProfile() {
     return <PageSkeleton />;
   }
 
-  if (error || !orphanage) {
+  if (error || !orphanage || !orphanage.name) {
     return (
       <div className="space-y-5">
         <Breadcrumb items={["Admin", "Orphanages", "Full Profile"]} />

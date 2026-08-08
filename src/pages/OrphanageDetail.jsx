@@ -43,20 +43,24 @@ export default function OrphanageDetail() {
     return <PageSkeleton />;
   }
 
+  // Extract actual payload object defensively
+  const rawOrphanage = orphanage?.data?.name ? orphanage.data : orphanage;
+  const stats = statistics?.data?.totalAdmissions !== undefined ? statistics.data : statistics;
+
   // Ensure orphanage has required fields with defaults
   const orphanageData = {
-    name: orphanage?.name || "Unknown Orphanage",
-    code: orphanage?.code || "",
-    city: orphanage?.city || "",
-    compliance: orphanage?.compliance ?? 0,
-    capacity: orphanage?.capacity ?? 0,
-    registrationNumber: orphanage?.registrationNumber || "",
-    governmentLicenseNumber: orphanage?.governmentLicenseNumber || "",
-    phone: orphanage?.phone || "",
-    fullAddress: orphanage?.fullAddress || "",
+    name: rawOrphanage?.name || "Unknown Orphanage",
+    code: rawOrphanage?.code || "",
+    city: rawOrphanage?.city || "",
+    compliance: rawOrphanage?.compliance ?? rawOrphanage?.complianceScore ?? 0,
+    capacity: rawOrphanage?.capacity ?? rawOrphanage?.totalCapacity ?? 0,
+    registrationNumber: rawOrphanage?.registrationNumber || "",
+    governmentLicenseNumber: rawOrphanage?.governmentLicenseNumber || "",
+    phone: rawOrphanage?.phone || "",
+    fullAddress: rawOrphanage?.fullAddress || (rawOrphanage?.addressLine1 ? `${rawOrphanage.addressLine1}, ${rawOrphanage.city}` : ""),
   };
 
-  if (error || !orphanage) {
+  if (error || !orphanage || !rawOrphanage || !rawOrphanage.name) {
     return (
       <div className="space-y-5">
         <Breadcrumb items={["Admin", "Orphanages", "Details"]} />
@@ -76,10 +80,10 @@ export default function OrphanageDetail() {
     );
   }
 
-  const totalAdmissions = statistics?.data?.totalAdmissions || statistics?.totalAdmissions || 0;
-  const adoptedChildren = statistics?.data?.adoptedChildrenCount || statistics?.adoptedChildrenCount || 0;
-  const currentChildren = statistics?.data?.currentChildrenCount || statistics?.currentChildrenCount || orphanage.occupancy || 0;
-  const occupancyPct = statistics?.data?.occupancyPercentage || statistics?.occupancyPercentage || 0;
+  const totalAdmissions = stats?.totalAdmissions ?? 0;
+  const adoptedChildren = stats?.adoptedChildrenCount ?? 0;
+  const currentChildren = stats?.currentChildrenCount ?? rawOrphanage?.occupancy ?? rawOrphanage?.currentOccupancy ?? 0;
+  const occupancyPct = stats?.occupancyPercentage ?? (orphanageData.capacity ? Math.round((currentChildren / orphanageData.capacity) * 100) : 0);
   const compliance = orphanageData?.compliance ?? 0;
   const complianceColor = compliance >= 90 ? "text-green-600 dark:text-green-400" : compliance >= 75 ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
 

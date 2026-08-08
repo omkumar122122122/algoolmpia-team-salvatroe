@@ -544,22 +544,19 @@ export class OrphanagesService {
     }
 
     return {
-      success: true,
-      data: {
-        id: orphanage.id,
-        code: orphanage.code,
-        name: orphanage.name,
-        registrationNumber: orphanage.registrationNumber,
-        governmentLicenseNumber: orphanage.governmentLicenseNumber,
-        city: orphanage.city,
-        state: orphanage.state,
-        capacity: orphanage.totalCapacity,
-        occupancy: orphanage.currentOccupancy,
-        compliance: orphanage.complianceScore,
-        phone: orphanage.phone,
-        fullAddress: `${orphanage.addressLine1}, ${orphanage.city}, ${orphanage.state} ${orphanage.pincode}`,
-        organizationType: orphanage.organizationType,
-      },
+      id: orphanage.id,
+      code: orphanage.code,
+      name: orphanage.name,
+      registrationNumber: orphanage.registrationNumber,
+      governmentLicenseNumber: orphanage.governmentLicenseNumber,
+      city: orphanage.city,
+      state: orphanage.state,
+      capacity: orphanage.totalCapacity,
+      occupancy: orphanage.currentOccupancy,
+      compliance: orphanage.complianceScore,
+      phone: orphanage.phone,
+      fullAddress: `${orphanage.addressLine1}, ${orphanage.city}, ${orphanage.state} ${orphanage.pincode}`,
+      organizationType: orphanage.organizationType,
     };
   }
 
@@ -627,75 +624,69 @@ export class OrphanagesService {
       : [];
 
     return {
-      success: true,
-      data: {
-        id: orphanage.id,
-        code: orphanage.code,
-        name: orphanage.name,
-        registrationNumber: orphanage.registrationNumber,
-        governmentLicenseNumber: orphanage.governmentLicenseNumber,
-        establishmentDate: orphanage.establishmentDate,
-        organizationType: orphanage.organizationType,
-        numberOfChildren: orphanage.currentOccupancy,
-        capacity: orphanage.totalCapacity,
-        compliance: orphanage.complianceScore,
-        officialEmail: orphanage.officialEmail,
-        phone: orphanage.phone,
-        alternativeContact: orphanage.alternativePhone,
-        website: orphanage.website,
-        country: orphanage.country,
-        state: orphanage.state,
-        district: orphanage.district,
-        city: orphanage.city,
-        pinCode: orphanage.pincode,
-        fullAddress: `${orphanage.addressLine1}, ${orphanage.city}, ${orphanage.state} ${orphanage.pincode}`,
-        administrator: admin
-          ? {
-              name: `${admin.user.firstName} ${admin.user.lastName}`,
-              designation: admin.designation,
-              mobile: admin.user.phone,
-              email: admin.user.email,
-              profilePhoto: admin.user.avatar,
-            }
+      id: orphanage.id,
+      code: orphanage.code,
+      name: orphanage.name,
+      registrationNumber: orphanage.registrationNumber,
+      governmentLicenseNumber: orphanage.governmentLicenseNumber,
+      establishmentDate: orphanage.establishmentDate,
+      organizationType: orphanage.organizationType,
+      numberOfChildren: orphanage.currentOccupancy,
+      capacity: orphanage.totalCapacity,
+      compliance: orphanage.complianceScore,
+      officialEmail: orphanage.officialEmail,
+      phone: orphanage.phone,
+      alternativeContact: orphanage.alternativePhone,
+      website: orphanage.website,
+      country: orphanage.country,
+      state: orphanage.state,
+      district: orphanage.district,
+      city: orphanage.city,
+      pinCode: orphanage.pincode,
+      fullAddress: `${orphanage.addressLine1}, ${orphanage.city}, ${orphanage.state} ${orphanage.pincode}`,
+      administrator: admin
+        ? {
+            name: `${admin.user.firstName} ${admin.user.lastName}`,
+            designation: admin.designation,
+            mobile: admin.user.phone,
+            email: admin.user.email,
+            profilePhoto: admin.user.avatar,
+          }
+        : null,
+      kyc,
+      childSummary,
+      staff: staffSummary,
+      facilities: facilitiesArray.length > 0 ? facilitiesArray : [],
+      emergencyContact: {
+        contactPerson: (orphanage as any).emergencyContactPerson,
+        mobile: (orphanage as any).emergencyContactMobile,
+        email: (orphanage as any).emergencyContactEmail,
+        relationship: (orphanage as any).emergencyContactRelationship,
+      },
+      aiSafety: {
+        faceRecognitionEnabled: orphanage.faceRecognitionEnabled
+          ? 'Yes'
+          : 'No',
+        cctvInstalled: orphanage.cctvInstalled ? 'Yes' : 'No',
+        numberOfCameras: orphanage.numberOfCameras,
+        visitorFaceVerificationEnabled: 'No',
+        childAttendanceSystem: orphanage.biometricAttendanceEnabled
+          ? 'Biometric and face recognition'
+          : 'Manual',
+        gpsTrackingAvailable: orphanage.gpsTrackingAvailable ? 'Yes' : 'No',
+        emergencyAlertSystemEnabled: orphanage.emergencyAlertEnabled
+          ? 'Yes'
+          : 'No',
+      },
+      bankDetails: {
+        bankName: orphanage.bankName,
+        accountHolderName: orphanage.bankAccountHolder,
+        accountNumber: orphanage.bankAccountNumber
+          ? this.encryptionService.decryptAndMaskBankAccount(
+              orphanage.bankAccountNumber,
+            )
           : null,
-        kyc,
-        childSummary,
-        staff: staffSummary,
-        // FIX-2: Return facilities from database
-        facilities: facilitiesArray.length > 0 ? facilitiesArray : [],
-        // FIX-1: Return emergency contact from database
-        emergencyContact: {
-          contactPerson: (orphanage as any).emergencyContactPerson,
-          mobile: (orphanage as any).emergencyContactMobile,
-          email: (orphanage as any).emergencyContactEmail,
-          relationship: (orphanage as any).emergencyContactRelationship,
-        },
-        aiSafety: {
-          faceRecognitionEnabled: orphanage.faceRecognitionEnabled
-            ? 'Yes'
-            : 'No',
-          cctvInstalled: orphanage.cctvInstalled ? 'Yes' : 'No',
-          numberOfCameras: orphanage.numberOfCameras,
-          visitorFaceVerificationEnabled: 'No',
-          childAttendanceSystem: orphanage.biometricAttendanceEnabled
-            ? 'Biometric and face recognition'
-            : 'Manual',
-          gpsTrackingAvailable: orphanage.gpsTrackingAvailable ? 'Yes' : 'No',
-          emergencyAlertSystemEnabled: orphanage.emergencyAlertEnabled
-            ? 'Yes'
-            : 'No',
-        },
-        // FIX-3: Return decrypted and masked bank details
-        bankDetails: {
-          bankName: orphanage.bankName,
-          accountHolderName: orphanage.bankAccountHolder,
-          accountNumber: orphanage.bankAccountNumber
-            ? this.encryptionService.decryptAndMaskBankAccount(
-                orphanage.bankAccountNumber,
-              )
-            : null,
-          ifscCode: orphanage.bankIfscCode,
-        },
+        ifscCode: orphanage.bankIfscCode,
       },
     };
   }
@@ -738,14 +729,11 @@ export class OrphanagesService {
       : 0;
 
     return {
-      success: true,
-      data: {
-        totalAdmissions,
-        adoptedChildrenCount,
-        currentChildrenCount,
-        occupancyPercentage,
-        complianceScore: orphanage.complianceScore,
-      },
+      totalAdmissions,
+      adoptedChildrenCount,
+      currentChildrenCount,
+      occupancyPercentage,
+      complianceScore: orphanage.complianceScore,
     };
   }
 
