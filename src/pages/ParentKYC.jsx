@@ -3,13 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   FiShield, FiUser, FiCalendar, FiCheckCircle, FiAlertCircle,
   FiClock, FiUpload, FiDownload, FiEye, FiFileText,
-<<<<<<< HEAD
-  FiX, FiCheck, FiChevronDown, FiChevronUp, FiRefreshCw,
-  FiLock, FiInfo, FiAlertTriangle, FiUserCheck
-=======
   FiX, FiCheck, FiRefreshCw, FiLock, FiInfo,
   FiAlertTriangle, FiUserCheck, FiTrash2, FiEdit2, FiExternalLink
->>>>>>> origin/rohit
 } from "react-icons/fi";
 import Breadcrumb from "../components/Breadcrumb";
 import { PageSkeleton } from "../components/Loader";
@@ -26,8 +21,6 @@ function formatDate(iso) {
   });
 }
 
-<<<<<<< HEAD
-=======
 function formatBytes(bytes) {
   if (!bytes) return "0 B";
   const k = 1024;
@@ -56,7 +49,6 @@ const DOCUMENT_TYPE_LABELS = {
 const ALLOWED_MIME_TYPES = ["application/pdf", "image/jpeg", "image/jpg", "image/png"];
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
 
->>>>>>> origin/rohit
 /* ── Status badge config ─────────────────────────────────── */
 const statusCfg = {
   Verified:             { badge: "badge-success", icon: FiCheckCircle, label: "Verified" },
@@ -131,23 +123,17 @@ export default function ParentKYC() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-<<<<<<< HEAD
-=======
   /* Client-side staged files before submission */
   const [stagedDocs, setStagedDocs] = useState({});
   const [validationError, setValidationError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
->>>>>>> origin/rohit
   /* Modal state */
   const [kycOpen, setKycOpen] = useState(false);
   const [docsOpen, setDocsOpen] = useState(false);
   const [requestUpdateOpen, setRequestUpdateOpen] = useState(false);
-<<<<<<< HEAD
-=======
   const [previewDoc, setPreviewDoc] = useState(null);
->>>>>>> origin/rohit
 
   useEffect(() => {
     loadKycStatus();
@@ -165,24 +151,6 @@ export default function ParentKYC() {
     }
   }
 
-<<<<<<< HEAD
-  async function handleKycSubmit(notes) {
-    try {
-      await parentsService.submitKyc(notes);
-      await loadKycStatus();
-      setKycOpen(false);
-    } catch (err) {
-      alert(err.message);
-    }
-  }
-
-  async function handleFileUpload(type, file, docNumber) {
-    try {
-      await parentsService.uploadDocument(kyc.parentId, type, file, docNumber);
-      await loadKycStatus();
-    } catch (err) {
-      alert(err.message);
-=======
   /* File staging handler with validation */
   const handleStageFile = (documentType, file) => {
     setValidationError(null);
@@ -255,31 +223,12 @@ export default function ParentKYC() {
     } finally {
       setIsSubmitting(false);
       setUploadProgress(0);
->>>>>>> origin/rohit
     }
   }
 
   async function handleRequestUpdateSubmit(reason) {
     try {
       await parentsService.requestDocumentUpdate(reason);
-<<<<<<< HEAD
-      alert('Document update request submitted successfully for administrator review.');
-      setRequestUpdateOpen(false);
-      await loadKycStatus();
-    } catch (err) {
-      alert(err?.message || 'Failed to submit document update request');
-    }
-  }
-
-  function handleAcknowledgementDownload() {
-    if (!kyc?.documents || kyc.documents.length === 0) {
-      alert('No uploaded KYC documents found.');
-      return;
-    }
-    setDocsOpen(true);
-  }
-
-=======
       alert("Document update request submitted successfully for administrator review.");
       setRequestUpdateOpen(false);
       await loadKycStatus();
@@ -288,7 +237,6 @@ export default function ParentKYC() {
     }
   }
 
->>>>>>> origin/rohit
   if (loading) return <PageSkeleton />;
 
   if (error) return (
@@ -300,13 +248,6 @@ export default function ParentKYC() {
     </div>
   );
 
-<<<<<<< HEAD
-  const isApproved = kyc.kycStatus === 'APPROVED';
-  const canSubmit = kyc.kycStatus === 'PENDING' || kyc.kycStatus === 'RE_UPLOAD_REQUIRED';
-
-  const summaryCards = [
-    { label: "KYC Status", value: kyc.kycStatus, sub: isApproved ? "One-Time Complete" : "Verification Pending", accent: isApproved ? "border-l-green-500" : "border-l-amber-500", iconBg: "bg-green-50 text-green-600" },
-=======
   const isApproved = kyc.kycStatus === "APPROVED";
   const isRejected = kyc.kycStatus === "REJECTED";
   const isReuploadRequired = kyc.kycStatus === "RE_UPLOAD_REQUIRED";
@@ -314,7 +255,6 @@ export default function ParentKYC() {
 
   const summaryCards = [
     { label: "KYC Status", value: kyc.kycStatus, sub: isApproved ? "One-Time Complete" : isRejected ? "Re-upload Required" : "Verification Pending", accent: isApproved ? "border-l-green-500" : isRejected ? "border-l-red-500" : "border-l-amber-500", iconBg: isApproved ? "bg-green-50 text-green-600" : isRejected ? "bg-red-50 text-red-600" : "bg-amber-50 text-amber-600" },
->>>>>>> origin/rohit
     { label: "Compliance Status", value: kyc.complianceStatus, sub: isApproved ? "Compliant & Verified" : "Action Needed", accent: isApproved ? "border-l-emerald-500" : "border-l-amber-500", iconBg: "bg-emerald-50 text-emerald-600" },
     { label: "Submitted Date", value: formatDate(kyc.lastKycDate), sub: kyc.lastKycDate ? "Package Submitted" : "Not Submitted", accent: "border-l-indigo-500", iconBg: "bg-indigo-50 text-indigo-600" },
     { label: "Verified Date", value: formatDate(kyc.kycApprovedAt), sub: isApproved ? "Verification Granted" : "Pending Verification", accent: "border-l-violet-500", iconBg: "bg-violet-50 text-violet-600" },
@@ -340,14 +280,6 @@ export default function ParentKYC() {
           </div>
           <div className="flex shrink-0 flex-wrap gap-2">
             {canSubmit && (
-<<<<<<< HEAD
-              <Button icon={FiRefreshCw} onClick={() => setKycOpen(true)}>Submit KYC Package</Button>
-            )}
-            {isApproved && (
-              <Button icon={FiLock} variant="secondary" onClick={() => setRequestUpdateOpen(true)}>Request Document Update</Button>
-            )}
-            <Button icon={FiEye} variant="secondary" onClick={() => setDocsOpen(true)}>View Documents</Button>
-=======
               <Button icon={FiRefreshCw} onClick={() => setKycOpen(true)}>
                 Submit KYC Package
               </Button>
@@ -360,13 +292,10 @@ export default function ParentKYC() {
             <Button icon={FiEye} variant="secondary" onClick={() => setDocsOpen(true)}>
               View Documents
             </Button>
->>>>>>> origin/rohit
           </div>
         </div>
       </motion.div>
 
-<<<<<<< HEAD
-=======
       {/* Rejection / Re-upload Alert Banner */}
       {(isRejected || isReuploadRequired) && (
         <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="rounded-2xl border border-red-200 bg-red-50/90 p-5 dark:border-red-900/40 dark:bg-red-950/30 text-red-900 dark:text-red-200 shadow-sm space-y-2">
@@ -383,7 +312,6 @@ export default function ParentKYC() {
         </motion.div>
       )}
 
->>>>>>> origin/rohit
       {/* Summary Metric Cards */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         {summaryCards.map((card, i) => (
@@ -407,11 +335,6 @@ export default function ParentKYC() {
         <div className="space-y-6">
           {/* Identity Verification Main Card */}
           <IdentityVerificationCard kyc={kyc} onViewDocs={() => setDocsOpen(true)} onRequestUpdate={() => setRequestUpdateOpen(true)} />
-<<<<<<< HEAD
-          {/* Document Management Section */}
-          <KycFormSection kyc={kyc} onUpload={handleFileUpload} />
-          {/* History Section */}
-=======
 
           {/* Document Staging & Preview Section */}
           <KycStagingSection
@@ -425,26 +348,16 @@ export default function ParentKYC() {
           />
 
           {/* Verification History */}
->>>>>>> origin/rohit
           <VerificationHistory history={kyc.verificationHistory} />
         </div>
 
         {/* Right Sidebar: Status & Document Summary */}
         <div className="space-y-6">
-<<<<<<< HEAD
-          <IdentityStatusSummaryPanel kyc={kyc} onViewDocs={() => setDocsOpen(true)} />
-=======
           <IdentityStatusSummaryPanel kyc={kyc} onViewDocs={() => setDocsOpen(true)} stagedCount={Object.keys(stagedDocs).length} />
->>>>>>> origin/rohit
         </div>
       </div>
 
       {/* Modals */}
-<<<<<<< HEAD
-      <SubmitKycModal open={kycOpen} onClose={() => setKycOpen(false)} onConfirm={handleKycSubmit} />
-      <RequestUpdateModal open={requestUpdateOpen} onClose={() => setRequestUpdateOpen(false)} onConfirm={handleRequestUpdateSubmit} />
-      <ViewDocsModal open={docsOpen} onClose={() => setDocsOpen(false)} docs={kyc.documents} />
-=======
       <SubmitKycModal
         open={kycOpen}
         onClose={() => setKycOpen(false)}
@@ -462,7 +375,6 @@ export default function ParentKYC() {
           <DocumentPreviewModal doc={previewDoc} onClose={() => setPreviewDoc(null)} />
         )}
       </AnimatePresence>
->>>>>>> origin/rohit
     </div>
   );
 }
@@ -473,21 +385,13 @@ export default function ParentKYC() {
 
 /* ── Identity Verification Card ─────────────────────────── */
 function IdentityVerificationCard({ kyc, onViewDocs, onRequestUpdate }) {
-<<<<<<< HEAD
-  const isApproved = kyc.kycStatus === 'APPROVED';
-=======
   const isApproved = kyc.kycStatus === "APPROVED";
->>>>>>> origin/rohit
   const docsSubmittedCount = kyc.documents?.length || 0;
   const docsRequiredCount = kyc.requiredDocuments?.length || 0;
 
   return (
     <Section
-<<<<<<< HEAD
-      title="Identity Verification"
-=======
       title="Identity Verification Profile"
->>>>>>> origin/rohit
       icon={FiShield}
       action={
         <Button icon={FiEye} variant="secondary" size="sm" onClick={onViewDocs}>
@@ -500,11 +404,7 @@ function IdentityVerificationCard({ kyc, onViewDocs, onRequestUpdate }) {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-xl bg-slate-50 p-4 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-4">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-civic-600 text-xl font-bold text-white shadow-sm">
-<<<<<<< HEAD
-              {kyc.parentAvatar || 'P'}
-=======
               {kyc.parentAvatar || "P"}
->>>>>>> origin/rohit
             </div>
             <div>
               <h3 className="text-base font-extrabold text-slate-900 dark:text-white">{kyc.parentName}</h3>
@@ -541,11 +441,7 @@ function IdentityVerificationCard({ kyc, onViewDocs, onRequestUpdate }) {
         ) : (
           <div className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50/70 p-4 text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300 text-xs">
             <FiInfo className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
-<<<<<<< HEAD
-            <p><span className="font-bold">Verification Pending:</span> Please upload all required identity documents and submit your KYC package for review.</p>
-=======
             <p><span className="font-bold">Verification Pending:</span> Stage required identity documents below, view their previews, and click <span className="font-bold underline">Submit KYC Package</span>.</p>
->>>>>>> origin/rohit
           </div>
         )}
       </div>
@@ -553,25 +449,6 @@ function IdentityVerificationCard({ kyc, onViewDocs, onRequestUpdate }) {
   );
 }
 
-<<<<<<< HEAD
-/* ── Document Management Section ─────────────────────────── */
-function KycFormSection({ kyc, onUpload }) {
-  const isApproved = kyc.kycStatus === 'APPROVED';
-  const [selectedDoc, setSelectedDoc] = useState(kyc.missingDocuments?.[0] || "");
-  const [file, setFile] = useState(null);
-  const [docNum, setDocNum] = useState("");
-
-  const handleUpload = () => {
-    if (!selectedDoc || !file) return;
-    onUpload(selectedDoc, file, docNum);
-    setFile(null);
-    setDocNum("");
-  };
-
-  return (
-    <Section title="Documents Submitted" icon={FiUpload}>
-      <div className="p-6 space-y-5">
-=======
 /* ── Document Staging & Preview Section ──────────────────── */
 function KycStagingSection({ kyc, stagedDocs, validationError, onStage, onRemove, onPreview, onSubmitPackage }) {
   const isApproved = kyc.kycStatus === "APPROVED";
@@ -583,33 +460,17 @@ function KycStagingSection({ kyc, stagedDocs, validationError, onStage, onRemove
   return (
     <Section title="Required Documents & Staged Uploads" icon={FiUpload}>
       <div className="p-6 space-y-6">
->>>>>>> origin/rohit
         {/* Required Documents Pills */}
         <div>
           <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 block">Required Verification Documents</label>
           <div className="flex flex-wrap gap-2">
-<<<<<<< HEAD
-            {kyc.requiredDocuments?.map((d) => {
-              const isMissing = kyc.missingDocuments?.includes(d);
-=======
             {requiredTypes.map((d) => {
               const hasUploaded = kyc.documents?.some((doc) => doc.documentType === d && doc.status !== "REJECTED");
               const hasStaged = !!stagedDocs[d];
->>>>>>> origin/rohit
               return (
                 <span
                   key={d}
                   className={classNames(
-<<<<<<< HEAD
-                    "px-3 py-1.5 rounded-lg text-xs font-bold border flex items-center gap-1.5",
-                    isMissing
-                      ? "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300"
-                      : "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300"
-                  )}
-                >
-                  {isMissing ? <FiClock className="h-3 w-3" /> : <FiCheckCircle className="h-3 w-3" />}
-                  {d.replace(/_/g, ' ')}
-=======
                     "px-3 py-1.5 rounded-xl text-xs font-bold border flex items-center gap-1.5 transition",
                     hasUploaded
                       ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300"
@@ -621,58 +482,12 @@ function KycStagingSection({ kyc, stagedDocs, validationError, onStage, onRemove
                   {hasUploaded ? <FiCheckCircle className="h-3.5 w-3.5 text-emerald-600" /> : hasStaged ? <FiClock className="h-3.5 w-3.5 text-indigo-600" /> : <FiAlertTriangle className="h-3.5 w-3.5 text-amber-600" />}
                   {DOCUMENT_TYPE_LABELS[d] || d.replace(/_/g, " ")}
                   {hasStaged && <span className="ml-1 text-[10px] bg-indigo-200 dark:bg-indigo-900 px-1.5 py-0.5 rounded">Staged</span>}
->>>>>>> origin/rohit
                 </span>
               );
             })}
           </div>
         </div>
 
-<<<<<<< HEAD
-        {/* Upload Interface (Disabled if Approved) */}
-        {!isApproved ? (
-          <div className="border-t border-gray-100 dark:border-slate-800 pt-4 space-y-3">
-            <p className="text-sm font-bold text-slate-900 dark:text-white">Upload / Re-upload Document</p>
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              <select
-                value={selectedDoc}
-                onChange={(e) => setSelectedDoc(e.target.value)}
-                className="input-field w-full"
-              >
-                <option value="">Select Document Type</option>
-                {kyc.requiredDocuments?.map((d) => (
-                  <option key={d} value={d}>{d.replace(/_/g, ' ')}</option>
-                ))}
-              </select>
-              <input
-                type="text"
-                placeholder="Document Number (Optional)"
-                className="input-field w-full"
-                value={docNum}
-                onChange={(e) => setDocNum(e.target.value)}
-              />
-              <input
-                type="file"
-                accept=".pdf,.jpg,.jpeg,.png"
-                onChange={(e) => setFile(e.target.files[0])}
-                className="text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-civic-50 file:text-civic-700 hover:file:bg-civic-100 cursor-pointer"
-              />
-            </div>
-            <div className="flex justify-end pt-2">
-              <Button onClick={handleUpload} disabled={!file || !selectedDoc} icon={FiUpload}>
-                Upload Document
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="border-t border-gray-100 dark:border-slate-800 pt-4 flex items-center justify-between text-xs text-slate-500">
-            <span className="flex items-center gap-1.5 font-semibold">
-              <FiLock className="h-4 w-4 text-emerald-600" />
-              Direct document upload disabled for verified accounts.
-            </span>
-          </div>
-        )}
-=======
         {/* Validation Error Alert */}
         {validationError && (
           <div className="flex items-center gap-2.5 rounded-xl border border-red-200 bg-red-50 p-3.5 text-xs font-bold text-red-700 dark:border-red-900/30 dark:bg-red-950/30 dark:text-red-300">
@@ -801,7 +616,6 @@ function KycStagingSection({ kyc, stagedDocs, validationError, onStage, onRemove
             </div>
           </div>
         )}
->>>>>>> origin/rohit
       </div>
     </Section>
   );
@@ -809,31 +623,6 @@ function KycStagingSection({ kyc, stagedDocs, validationError, onStage, onRemove
 
 /* ── Verification History ────────────────────────────────── */
 function VerificationHistory({ history }) {
-<<<<<<< HEAD
-  return (
-    <Section title="Verification History & Audit Log" icon={FiClock}>
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 font-bold text-xs">
-            <tr>
-              <th className="p-3.5">Document Type</th>
-              <th className="p-3.5">Status</th>
-              <th className="p-3.5">Date</th>
-              <th className="p-3.5">Review Notes</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y dark:divide-slate-800">
-            {history?.map((h, i) => (
-              <tr key={i} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
-                <td className="p-3.5 font-bold text-slate-900 dark:text-white">{h.type.replace(/_/g, ' ')}</td>
-                <td className="p-3.5"><StatusBadge status={h.status} /></td>
-                <td className="p-3.5 text-xs text-slate-500">{formatDate(h.date)}</td>
-                <td className="p-3.5 text-xs text-slate-400">{h.notes || '—'}</td>
-              </tr>
-            ))}
-            {(!history || history.length === 0) && (
-              <tr><td colSpan="4" className="p-8 text-center text-slate-400">No verification activity logged yet.</td></tr>
-=======
   const cleanHistory = history?.filter((h) => {
     if (!h) return false;
     // Exclude individual draft/pending unreviewed document upload entries
@@ -893,7 +682,6 @@ function VerificationHistory({ history }) {
                   <p className="text-[11px] mt-0.5">Your KYC package submission attempts and audit reviews will appear here.</p>
                 </td>
               </tr>
->>>>>>> origin/rohit
             )}
           </tbody>
         </table>
@@ -903,13 +691,8 @@ function VerificationHistory({ history }) {
 }
 
 /* ── Right Panel: Identity Status & Documents Summary ────── */
-<<<<<<< HEAD
-function IdentityStatusSummaryPanel({ kyc, onViewDocs }) {
-  const isApproved = kyc.kycStatus === 'APPROVED';
-=======
 function IdentityStatusSummaryPanel({ kyc, onViewDocs, stagedCount }) {
   const isApproved = kyc.kycStatus === "APPROVED";
->>>>>>> origin/rohit
 
   return (
     <div className="space-y-4">
@@ -940,30 +723,17 @@ function IdentityStatusSummaryPanel({ kyc, onViewDocs, stagedCount }) {
             <span className="font-bold text-slate-900 dark:text-white">{formatDate(kyc.kycApprovedAt)}</span>
           </div>
           <div className="flex justify-between items-center py-1 border-b border-slate-50 dark:border-slate-800/50">
-<<<<<<< HEAD
-            <span className="text-slate-500">Verified By</span>
-            <span className="font-bold text-slate-900 dark:text-white">{kyc.verifiedBy || (isApproved ? "Authority Admin" : "—")}</span>
-          </div>
-          <div className="flex justify-between items-center py-1">
-            <span className="text-slate-500">Documents Submitted</span>
-            <span className="font-bold text-slate-900 dark:text-white">{kyc.documents?.length || 0} / {kyc.requiredDocuments?.length || 0}</span>
-=======
             <span className="text-slate-500">Staged Documents</span>
             <span className="font-bold text-indigo-600 dark:text-indigo-400">{stagedCount} Ready</span>
           </div>
           <div className="flex justify-between items-center py-1">
             <span className="text-slate-500">Cloud Storage</span>
             <span className="font-bold text-emerald-600 dark:text-emerald-400">Cloudinary Encrypted</span>
->>>>>>> origin/rohit
           </div>
         </div>
 
         <Button fullWidth variant="secondary" icon={FiEye} onClick={onViewDocs}>
-<<<<<<< HEAD
-          View Documents
-=======
           View Submitted Documents
->>>>>>> origin/rohit
         </Button>
       </div>
 
@@ -971,17 +741,10 @@ function IdentityStatusSummaryPanel({ kyc, onViewDocs, stagedCount }) {
       <div className="rounded-2xl border border-blue-100 bg-blue-50/50 p-4 dark:border-blue-900/30 dark:bg-blue-950/20 text-xs text-blue-900 dark:text-blue-200 space-y-2">
         <div className="flex items-center gap-2 font-bold text-sm text-blue-950 dark:text-blue-100">
           <FiInfo className="h-4 w-4 text-blue-600" />
-<<<<<<< HEAD
-          One-Time KYC Policy
-        </div>
-        <p className="leading-relaxed opacity-90">
-          KYC verification is completed once prior to child adoption. After approval, documents are securely archived and locked against unauthorized edits.
-=======
           Production KYC Policy
         </div>
         <p className="leading-relaxed opacity-90">
           All document uploads are processed securely via memory buffers directly to Cloudinary storage. No binary files are stored on local servers. Once approved, documents are locked against edits.
->>>>>>> origin/rohit
         </p>
       </div>
     </div>
@@ -989,26 +752,6 @@ function IdentityStatusSummaryPanel({ kyc, onViewDocs, stagedCount }) {
 }
 
 /* ── Modals ──────────────────────────────────────────────── */
-<<<<<<< HEAD
-function SubmitKycModal({ open, onClose, onConfirm }) {
-  const [notes, setNotes] = useState("");
-  if (!open) return null;
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
-        <h3 className="text-lg font-bold">Submit KYC Package</h3>
-        <p className="text-sm text-slate-500">Submit your uploaded identity documents for administrator review.</p>
-        <textarea
-          className="input-field w-full h-24 resize-none"
-          placeholder="Optional submission notes for the reviewer..."
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-        />
-        <div className="flex gap-3">
-          <Button variant="secondary" fullWidth onClick={onClose}>Cancel</Button>
-          <Button fullWidth onClick={() => onConfirm(notes)}>Submit Package</Button>
-        </div>
-=======
 
 function SubmitKycModal({ open, onClose, onConfirm, stagedCount, existingCount, isSubmitting, uploadProgress }) {
   const [notes, setNotes] = useState("");
@@ -1046,7 +789,6 @@ function SubmitKycModal({ open, onClose, onConfirm, stagedCount, existingCount, 
             </div>
           </>
         )}
->>>>>>> origin/rohit
       </div>
     </div>
   );
@@ -1059,17 +801,10 @@ function RequestUpdateModal({ open, onClose, onConfirm }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm">
       <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
-<<<<<<< HEAD
-        <h3 className="text-lg font-bold">Request Document Update</h3>
-        <p className="text-sm text-slate-500">Specify why you need to update or replace your verified identity documents.</p>
-        <textarea
-          className="input-field w-full h-24 resize-none"
-=======
         <h3 className="text-lg font-bold text-slate-900 dark:text-white">Request Document Update</h3>
         <p className="text-xs text-slate-500">Specify why you need to update or replace your verified identity documents.</p>
         <textarea
           className="input-field w-full h-24 resize-none text-xs"
->>>>>>> origin/rohit
           placeholder="Reason for update (e.g. Address changed, Passport renewed)..."
           value={reason}
           onChange={(e) => setReason(e.target.value)}
@@ -1083,42 +818,21 @@ function RequestUpdateModal({ open, onClose, onConfirm }) {
   );
 }
 
-<<<<<<< HEAD
-function ViewDocsModal({ open, onClose, docs }) {
-  if (!open) return null;
-=======
 function ViewDocsModal({ open, onClose, docs, onPreview }) {
   if (!open) return null;
 
->>>>>>> origin/rohit
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm">
       <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 max-w-2xl w-full shadow-2xl space-y-4">
         <div className="flex justify-between items-center border-b border-slate-100 pb-3 dark:border-slate-800">
-<<<<<<< HEAD
-          <h3 className="text-lg font-bold">Submitted Identity Documents</h3>
-          <Button variant="ghost" icon={FiX} onClick={onClose} />
-        </div>
-=======
           <h3 className="text-lg font-bold text-slate-900 dark:text-white">Submitted Identity Documents</h3>
           <Button variant="ghost" icon={FiX} onClick={onClose} className="px-2" />
         </div>
 
->>>>>>> origin/rohit
         <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
           {docs?.map((doc) => (
             <div key={doc.id} className="flex items-center justify-between p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40">
               <div className="flex items-center gap-3">
-<<<<<<< HEAD
-                <FiFileText className="h-5 w-5 text-civic-600" />
-                <div>
-                  <p className="text-sm font-bold">{doc.documentType.replace(/_/g, ' ')}</p>
-                  <p className="text-[10px] text-slate-400">{doc.fileName}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <StatusBadge status={doc.status} />
-=======
                 <FiFileText className="h-5 w-5 text-civic-600 shrink-0" />
                 <div>
                   <p className="text-xs font-bold text-slate-900 dark:text-white">
@@ -1138,18 +852,13 @@ function ViewDocsModal({ open, onClose, docs, onPreview }) {
                 >
                   <FiEye className="h-4 w-4" />
                 </button>
->>>>>>> origin/rohit
                 {doc.storageUrl && (
                   <a
                     href={doc.storageUrl}
                     target="_blank"
                     rel="noreferrer"
                     className="p-2 rounded-lg text-slate-400 hover:text-civic-600 hover:bg-white dark:hover:bg-slate-800 transition"
-<<<<<<< HEAD
-                    title="View Document"
-=======
                     title="Download File"
->>>>>>> origin/rohit
                   >
                     <FiDownload className="h-4 w-4" />
                   </a>
@@ -1157,10 +866,7 @@ function ViewDocsModal({ open, onClose, docs, onPreview }) {
               </div>
             </div>
           ))}
-<<<<<<< HEAD
-=======
 
->>>>>>> origin/rohit
           {(!docs || docs.length === 0) && (
             <p className="text-center py-10 text-slate-400 text-sm">No documents submitted yet.</p>
           )}
@@ -1169,8 +875,6 @@ function ViewDocsModal({ open, onClose, docs, onPreview }) {
     </div>
   );
 }
-<<<<<<< HEAD
-=======
 
 /* ── Document Preview Modal (PDF & Image Viewer) ───────── */
 function DocumentPreviewModal({ doc, onClose }) {
@@ -1240,4 +944,3 @@ function DocumentPreviewModal({ doc, onClose }) {
     </div>
   );
 }
->>>>>>> origin/rohit

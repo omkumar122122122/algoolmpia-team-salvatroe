@@ -71,43 +71,15 @@ export class FaceEnrollmentController {
     @CurrentUser() user: JwtPayload,
     @Req() req: Request
   ): Promise<CompleteEnrollmentResponseDto> {
-<<<<<<< HEAD
-    console.log('[FaceEnrollmentController] === ENTERING CONTROLLER ===');
-    console.log('[FaceEnrollmentController] Param childId:', childId);
-    console.log('[FaceEnrollmentController] Validated DTO. capturedFrames length:', dto?.capturedFrames?.length);
-    console.log('[FaceEnrollmentController] User sub:', user?.sub);
-
-=======
->>>>>>> origin/rohit
     dto.childId = childId;
     const ipAddress = req.ip || req.socket.remoteAddress;
     const userAgent = req.headers['user-agent'];
 
-<<<<<<< HEAD
-    try {
-      const result = await this.faceEnrollmentService.completeEnrollment(
-        dto,
-        user.sub,
-        ipAddress,
-        userAgent
-      );
-      console.log('[FaceEnrollmentController] === EXITING CONTROLLER SUCCESS ===');
-      return result;
-    } catch (error: any) {
-      console.error('[FaceEnrollmentController] === EXCEPTION IN CONTROLLER ===');
-      console.error('Error message:', error?.message);
-      console.error('Error code:', error?.code);
-      console.error('Error meta:', error?.meta);
-      console.error('Stack trace:', error?.stack);
-      throw error;
-    }
-=======
     return this.faceEnrollmentService.completeEnrollment(
       dto,
       user.sub,
       ipAddress,
       userAgent
     );
->>>>>>> origin/rohit
   }
 }

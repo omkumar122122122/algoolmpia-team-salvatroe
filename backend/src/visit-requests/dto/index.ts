@@ -6,9 +6,6 @@ export * from './reschedule-visit-request.dto';
 export * from './request-documents.dto';
 export * from './complete-visit.dto';
 export * from './cancel-visit-request.dto';
-<<<<<<< HEAD
-=======
 export * from './respond-reschedule.dto';
 export * from './no-show-visit.dto';
->>>>>>> origin/rohit
 export * from './visit-request-response.dto';

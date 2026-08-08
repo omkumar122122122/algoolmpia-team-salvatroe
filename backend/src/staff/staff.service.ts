@@ -274,11 +274,7 @@ export class StaffService {
       designation: s.designation || undefined,
       joiningDate: s.joiningDate || new Date(),
       isActive: s.isActive,
-<<<<<<< HEAD
-      orphanageName: s.orphanage.name,
-=======
       orphanageName: s.orphanage?.name || 'Unassigned',
->>>>>>> origin/rohit
       userEmail: s.user.email,
       userPhone: s.user.phone || undefined,
     }));
@@ -361,23 +357,16 @@ export class StaffService {
         phone: staff.user.phone || undefined,
         avatar: staff.user.avatar || undefined,
       },
-<<<<<<< HEAD
-      orphanage: {
-=======
       orphanage: staff.orphanage ? {
->>>>>>> origin/rohit
         id: staff.orphanage.id,
         name: staff.orphanage.name,
         city: staff.orphanage.city,
         state: staff.orphanage.state,
-<<<<<<< HEAD
-=======
       } : {
         id: staff.orphanageId || '',
         name: 'Unassigned',
         city: '',
         state: '',
->>>>>>> origin/rohit
       },
       createdAt: staff.createdAt,
       updatedAt: staff.updatedAt,
@@ -565,11 +554,7 @@ export class StaffService {
       designation: s.designation || undefined,
       joiningDate: s.joiningDate || new Date(),
       isActive: s.isActive,
-<<<<<<< HEAD
-      orphanageName: s.orphanage.name,
-=======
       orphanageName: s.orphanage?.name || 'Unassigned',
->>>>>>> origin/rohit
       userEmail: s.user.email,
       userPhone: s.user.phone || undefined,
     }));
@@ -641,11 +626,7 @@ export class StaffService {
       },
     });
 
-<<<<<<< HEAD
-    if (staff) {
-=======
     if (staff && staff.orphanageId) {
->>>>>>> origin/rohit
       return staff.orphanageId;
     }
 

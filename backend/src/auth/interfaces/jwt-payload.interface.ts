@@ -6,20 +6,14 @@ import { Role } from '../../common/enums/role.enum';
 export interface JwtPayload {
   /** User UUID */
   sub: string;
-<<<<<<< HEAD
-=======
   /** User UUID alias */
   userId?: string;
->>>>>>> origin/rohit
   /** User email */
   email: string;
   /** Assigned role */
   role: Role;
-<<<<<<< HEAD
-=======
   /** Associated Orphanage UUID (for ORPHANAGE or STAFF role) */
   orphanageId?: string;
->>>>>>> origin/rohit
   /** Token type discriminator */
   type: 'access' | 'refresh';
   /** JWT ID — used for token family tracking & revocation */

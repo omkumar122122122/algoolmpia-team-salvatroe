@@ -213,13 +213,8 @@ class ApiClient {
 
       return data;
     } catch (error) {
-<<<<<<< HEAD
-      if (!error.status) {
-        error.message = 'Network error. Please check your connection.';
-=======
       if (!error.status && (!error.message || error.message.includes('fetch') || error.message.includes('NetworkError'))) {
         error.message = 'Network error. Please check your connection to the server.';
->>>>>>> origin/rohit
       }
       throw error;
     }

@@ -25,21 +25,15 @@ import {
   FiSend,
   FiMessageSquare,
   FiZap,
-<<<<<<< HEAD
-=======
   FiSearch,
   FiEye,
   FiSlash,
   FiFilter,
->>>>>>> origin/rohit
 } from "react-icons/fi";
 import Breadcrumb from "../components/Breadcrumb";
 import { PageSkeleton } from "../components/Loader";
 import Card from "../components/Card";
-<<<<<<< HEAD
-=======
 import Button from "../components/Button";
->>>>>>> origin/rohit
 import { classNames } from "../utils/formatters";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../hooks/useToast";
@@ -133,8 +127,6 @@ function localIsoDate(date = new Date()) {
   return `${year}-${month}-${day}`;
 }
 
-<<<<<<< HEAD
-=======
 function formatTo24HourTime(timeStr) {
   if (!timeStr) return "10:00";
   const clean = timeStr.trim();
@@ -151,16 +143,12 @@ function formatTo24HourTime(timeStr) {
   return "10:00";
 }
 
->>>>>>> origin/rohit
 export default function VisitRequest() {
   const { user } = useAuth();
   const { toasts, success: showSuccess, error: showError, removeToast } = useToast();
 
-<<<<<<< HEAD
-=======
   const tomorrowIso = new Date(Date.now() + 86400000).toISOString().split('T')[0];
 
->>>>>>> origin/rohit
   const [parentProfile, setParentProfile] = useState(null);
   const [orphanageOptions, setOrphanageOptions] = useState([]);
   const [requestHistory, setRequestHistory] = useState([]);
@@ -168,11 +156,7 @@ export default function VisitRequest() {
   const [selectedChild, setSelectedChild] = useState(MOCK_CHILDREN[0]);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState(TIME_SLOTS[0].time);
   const [selectedPurpose, setSelectedPurpose] = useState(VISIT_PURPOSES[0]);
-<<<<<<< HEAD
-  const [selectedDate, setSelectedDate] = useState("2026-08-05");
-=======
   const [selectedDate, setSelectedDate] = useState(tomorrowIso);
->>>>>>> origin/rohit
   
   // Dynamic Visitor list
   const [visitors, setVisitors] = useState([
@@ -208,8 +192,6 @@ export default function VisitRequest() {
 
   useEffect(() => {
     loadPageData();
-<<<<<<< HEAD
-=======
 
     // Background auto-refresh polling every 10 seconds for real-time status synchronization
     const interval = setInterval(async () => {
@@ -224,33 +206,18 @@ export default function VisitRequest() {
     }, 10000);
 
     return () => clearInterval(interval);
->>>>>>> origin/rohit
   }, []);
 
   const loadPageData = async () => {
     setLoading(true);
 
-<<<<<<< HEAD
-    const [profileResult, orphanagesResult, requestsResult] = await Promise.allSettled([
-      parentsService.getDashboard(),
-=======
     const [profileResult, kycResult, orphanagesResult, requestsResult] = await Promise.allSettled([
       parentsService.getDashboard(),
       parentsService.getKycStatus().catch(() => null),
->>>>>>> origin/rohit
       orphanagesService.getApprovedForParents().catch(() => orphanagesService.getAll({ isActive: true, limit: 50 })),
       visitRequestsService.getMyRequests({ limit: 20 }),
     ]);
 
-<<<<<<< HEAD
-    if (profileResult.status === 'fulfilled') {
-      setParentProfile(profileResult.value.parent || profileResult.value);
-    } else {
-      showError(profileResult.reason?.message || 'Failed to load parent profile');
-      console.error('Error loading parent profile:', profileResult.reason);
-    }
-
-=======
     let baseProfile = {};
     if (profileResult.status === 'fulfilled') {
       baseProfile = profileResult.value?.parent || profileResult.value || {};
@@ -270,7 +237,6 @@ export default function VisitRequest() {
 
     setParentProfile(baseProfile);
 
->>>>>>> origin/rohit
     if (orphanagesResult.status === 'fulfilled') {
       const orphanages = Array.isArray(orphanagesResult.value)
         ? orphanagesResult.value
@@ -320,32 +286,6 @@ export default function VisitRequest() {
 
   const onSubmit = async (formData) => {
     try {
-<<<<<<< HEAD
-      const orphanageId = formData.orphanageId || selectedOrphanage;
-      if (!orphanageId) {
-        showError('Please select an orphanage before submitting.');
-        return;
-      }
-
-      const payload = {
-        orphanageId,
-        childId: selectedChild?.id,
-        visitDate: formData.visitDate || selectedDate,
-        visitTime: formData.visitTime || selectedTimeSlot,
-        purpose: formData.purpose || selectedPurpose,
-        reason: formData.reason,
-        adoptionTimeline: formData.timeline,
-        familyBackground: formData.familyBackground,
-        visitorsCount: visitors.length || (formData.visitors ? parseInt(formData.visitors, 10) : 1),
-        relationship: visitors.map((v) => `${v.name || 'Visitor'} (${v.relationship})`).join(', ') || formData.relationship,
-        relationshipOfVisitors: formData.relationship || visitors.map((v) => `${v.name || 'Visitor'} (${v.relationship})`).join(', '),
-        specialRequirements: formData.requirements || null,
-        emergencyContact: {
-          name: formData.emergencyName,
-          phone: formData.emergencyPhone,
-          relation: formData.emergencyRelation,
-        },
-=======
       setSubmitting(true);
 
       const orphanageId = formData.orphanageId || selectedOrphanage;
@@ -375,7 +315,6 @@ export default function VisitRequest() {
         visitorsCount: visitors.length || (formData.visitors ? parseInt(formData.visitors, 10) : 1),
         relationshipOfVisitors: formData.relationship || visitors.map((v) => `${v.name || 'Visitor'} (${v.relationship})`).join(', '),
         specialRequirements: formData.requirements || undefined,
->>>>>>> origin/rohit
         agreedToRules: formData.agreement === true,
       };
 
@@ -386,29 +325,16 @@ export default function VisitRequest() {
       setTimeout(() => setToastVisible(false), 4000);
 
       // Refresh request history
-<<<<<<< HEAD
-      const requestsData = await visitRequestsService.getMyRequests({ limit: 10 });
-      setRequestHistory(requestsData || []);
-    } catch (err) {
-      showError(err.message || "Failed to submit visit request");
-=======
       const requestsData = await visitRequestsService.getMyRequests({ limit: 20 });
       setRequestHistory(requestsData?.data || requestsData || []);
     } catch (err) {
       const msg = err?.data?.message || err?.message || "Failed to submit visit request";
       showError(msg);
->>>>>>> origin/rohit
     } finally {
       setSubmitting(false);
     }
   };
 
-<<<<<<< HEAD
-  async function handleCancelRequest(request) {
-    try {
-      await visitRequestsService.cancel(request.id, 'Cancelled by parent');
-      showSuccess('Visit request cancelled');
-=======
   async function handleCancelRequest(request, cancellationReason) {
     if (!cancellationReason || !cancellationReason.trim()) {
       showError('Please provide a reason for cancelling the visit request');
@@ -418,14 +344,11 @@ export default function VisitRequest() {
       setSubmitting(true);
       await visitRequestsService.cancel(request.id, cancellationReason);
       showSuccess('Visit request cancelled successfully');
->>>>>>> origin/rohit
       const requestsData = await visitRequestsService.getMyRequests({ limit: 20 });
       setRequestHistory(requestsData.data || []);
     } catch (err) {
       showError(err.message || 'Failed to cancel visit request');
       console.error('Error cancelling visit request:', err);
-<<<<<<< HEAD
-=======
     } finally {
       setSubmitting(false);
     }
@@ -460,7 +383,6 @@ export default function VisitRequest() {
       showError(err.message || 'Failed to reject reschedule request');
     } finally {
       setSubmitting(false);
->>>>>>> origin/rohit
     }
   }
 
@@ -498,63 +420,6 @@ export default function VisitRequest() {
         </div>
       </motion.header>
 
-<<<<<<< HEAD
-      {/* Main Grid Layout */}
-      <div className="grid gap-8 xl:grid-cols-[1fr_360px]">
-        {/* Left Column: Form & Selection */}
-        <div className="space-y-8">
-          {/* Child Information Card */}
-          <ChildInformationCard
-            selectedChild={selectedChild}
-            onSelectChild={setSelectedChild}
-          />
-
-          {/* Form Details, Document Status & Emergency Contact */}
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-            <FormDetailsCard register={register} errors={errors} submitting={submitting} />
-            <DocumentStatus parentProfile={parentProfile} />
-            <EmergencyContactCard register={register} errors={errors} submitting={submitting} />
-            <TermsAgreementCard register={register} errors={errors} submitting={submitting} />
-
-            {/* Bottom Gradient Submit Button */}
-            <motion.button
-              type="submit"
-              disabled={submitting}
-              whileHover={{ y: -2, scale: 1.005 }}
-              whileTap={{ scale: 0.99 }}
-              className="flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 px-8 py-5 text-lg font-extrabold text-white shadow-xl shadow-blue-600/30 transition hover:from-blue-700 hover:to-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {submitting ? (
-                <>
-                  <FiLoader className="h-6 w-6 animate-spin" />
-                  Submitting Visit Request...
-                </>
-              ) : (
-                <>
-                  <FiSend className="h-6 w-6" />
-                  Request Official Visit
-                </>
-              )}
-            </motion.button>
-          </form>
-        </div>
-
-        {/* Right Sidebar */}
-        <div className="space-y-8">
-          {/* Visit Guidelines Card */}
-          <VisitGuidelinesCard />
-
-          {/* AI Assistant Panel */}
-          <AiAssistantHelpCard />
-
-          {/* Visit Progress Timeline */}
-          <VisitTimelineCard />
-        </div>
-      </div>
-
-      {/* Previous Visits Section */}
-      <PreviousVisitsSection requestHistory={requestHistory} orphanageOptions={orphanageOptions} />
-=======
       {/* Form & Reference Grid Layout */}
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
         <div className="grid gap-8 lg:grid-cols-2 items-start">
@@ -613,7 +478,6 @@ export default function VisitRequest() {
         onRejectReschedule={handleRejectReschedule}
         onCancelRequest={handleCancelRequest}
       />
->>>>>>> origin/rohit
 
       {/* Toast Notification */}
       <SuccessToast visible={toastVisible} />
@@ -774,26 +638,6 @@ function ChildInformationCard({ selectedChild, onSelectChild }) {
  * 3. Orphanage Selection Card
  */
 function OrphanageSelectionCard({
-<<<<<<< HEAD
-  orphanageOptions,
-  selectedOrphanage,
-  onChangeOrphanage,
-  selectedOrphanageObj,
-}) {
-  return (
-    <Card className="rounded-2xl border border-slate-200/80 bg-white/90 p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950/60 backdrop-blur-md">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-300">
-          <FiHome className="h-5 w-5" />
-        </div>
-        <div>
-          <h2 className="text-lg font-extrabold text-slate-900 dark:text-white">
-            Orphanage Selection
-          </h2>
-          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
-            Select verified care shelter hosting the child
-          </p>
-=======
   orphanageOptions = [],
   selectedOrphanage,
   onChangeOrphanage,
@@ -816,29 +660,20 @@ function OrphanageSelectionCard({
               Select registered care shelter hosting the child
             </p>
           </div>
->>>>>>> origin/rohit
         </div>
       </div>
 
       <select
         value={selectedOrphanage || ""}
-<<<<<<< HEAD
-=======
         disabled={loading || orphanageOptions.length === 0}
->>>>>>> origin/rohit
         onChange={(e) => onChangeOrphanage(e.target.value)}
         className={inputClass}
       >
         <option value="" disabled>
-<<<<<<< HEAD
-          {orphanageOptions.length === 0
-            ? "No active orphanages available"
-=======
           {loading
             ? "Loading registered active orphanages..."
             : orphanageOptions.length === 0
             ? "No active orphanages registered"
->>>>>>> origin/rohit
             : "Select an orphanage to visit..."}
         </option>
         {orphanageOptions.map((item) => (
@@ -848,8 +683,6 @@ function OrphanageSelectionCard({
         ))}
       </select>
 
-<<<<<<< HEAD
-=======
       {!loading && orphanageOptions.length === 0 && (
         <div className="mt-3 flex items-center gap-2 text-xs font-semibold text-amber-600 dark:text-amber-400">
           <FiAlertCircle className="h-4 w-4" />
@@ -857,7 +690,6 @@ function OrphanageSelectionCard({
         </div>
       )}
 
->>>>>>> origin/rohit
       {selectedOrphanageObj && (
         <div className="mt-4 grid gap-3 sm:grid-cols-3 text-xs">
           <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3 dark:border-slate-800 dark:bg-slate-900/40">
@@ -1102,21 +934,6 @@ function VisitForm({ register, errors, submitting }) {
   );
 }
 
-<<<<<<< HEAD
-function DocumentStatus({ parentProfile }) {
-  const docs = getDocuments(parentProfile);
-  if (!docs || docs.length === 0) {
-    return (
-      <Card className="rounded-lg">
-        <SectionTitle icon={RiFingerprintLine} title="Document Status" subtitle="Uploaded documents verified before visit scheduling" />
-        <div className="mt-5 py-8 text-center text-sm text-slate-500 dark:text-slate-400">
-          No documents uploaded yet. Complete KYC to see document status.
-        </div>
-      </Card>
-    );
-  }
-  return null;
-=======
 function getDocuments(parentProfile) {
   if (!parentProfile) return [];
   if (Array.isArray(parentProfile.documents)) return parentProfile.documents;
@@ -1261,7 +1078,6 @@ function DocumentStatus({ parentProfile }) {
       )}
     </Card>
   );
->>>>>>> origin/rohit
 }
 
 function RequestHistory({ onView, onCancel, requestHistory, orphanageOptions }) {
@@ -1738,66 +1554,6 @@ function VisitTimelineCard() {
 /**
  * Previous Visit History Cards
  */
-<<<<<<< HEAD
-function PreviousVisitsSection({ requestHistory, orphanageOptions }) {
-  if (!requestHistory || requestHistory.length === 0) {
-    return (
-      <Card className="rounded-2xl border border-slate-200/80 bg-white/90 p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950/60 backdrop-blur-md">
-        <h3 className="text-lg font-extrabold text-slate-900 dark:text-white flex items-center gap-2 mb-2">
-          <FiClock className="h-5 w-5 text-blue-600" />
-          Previous Visit History
-        </h3>
-        <p className="text-xs text-slate-500 dark:text-slate-400">
-          No previous visit requests found. Your submitted requests will appear here.
-        </p>
-      </Card>
-    );
-  }
-
-  return (
-    <Card className="rounded-2xl border border-slate-200/80 bg-white/90 p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950/60 backdrop-blur-md">
-      <h3 className="text-lg font-extrabold text-slate-900 dark:text-white flex items-center gap-2 mb-6">
-        <FiClock className="h-5 w-5 text-blue-600" />
-        Previous Visit History
-      </h3>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {requestHistory.map((req) => {
-          const orphanage = orphanageOptions.find((o) => o.id === req.orphanageId);
-          const tone = statusTone[req.status] || statusTone.PENDING;
-
-          return (
-            <div
-              key={req.id}
-              className="rounded-2xl border border-slate-200/80 bg-slate-50/50 p-5 dark:border-slate-800 dark:bg-slate-900/40 space-y-3 transition hover:shadow-md"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-extrabold text-blue-600 dark:text-blue-400">
-                  #{req.id?.substring(0, 8)}
-                </span>
-                <span className={classNames("rounded-full px-3 py-1 text-[11px] font-extrabold border", tone)}>
-                  {req.status}
-                </span>
-              </div>
-
-              <div>
-                <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">
-                  {orphanage?.name || "Care Center"}
-                </h4>
-                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">
-                  Purpose: {req.purpose}
-                </p>
-              </div>
-
-              <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800 flex justify-between text-xs font-bold text-slate-600 dark:text-slate-300">
-                <span>Date: {new Date(req.visitDate).toLocaleDateString()}</span>
-                <span>{req.visitTime || "Morning"}</span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-=======
 /**
  * Previous Visit History Cards
  */
@@ -2177,7 +1933,6 @@ function PreviousVisitsSection({
           </div>
         </div>
       )}
->>>>>>> origin/rohit
     </Card>
   );
 }

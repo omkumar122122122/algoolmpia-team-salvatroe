@@ -199,8 +199,6 @@ export const visitRequestsService = {
   },
 
   /**
-<<<<<<< HEAD
-=======
    * Respond to a reschedule request (Parent)
    */
   async respondReschedule(id, { action, reason } = {}) {
@@ -212,15 +210,12 @@ export const visitRequestsService = {
   },
 
   /**
->>>>>>> origin/rohit
    * Mark visit as completed
    */
   async complete(id, feedbackData) {
     const response = await apiClient.patch(`/visit-requests/${id}/complete`, feedbackData);
     return unwrap(response);
   },
-<<<<<<< HEAD
-=======
 
   /**
    * Check in a visit request on visit day
@@ -237,5 +232,4 @@ export const visitRequestsService = {
     const response = await apiClient.patch(`/visit-requests/${id}/no-show`, { reason });
     return unwrap(response);
   },
->>>>>>> origin/rohit
 };

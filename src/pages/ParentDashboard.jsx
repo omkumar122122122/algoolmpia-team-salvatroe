@@ -20,10 +20,7 @@ import heroBanner from "../assets/image copy.png";
 
 /* ── Quick navigation links ──────── */
 const quickLinks = [
-<<<<<<< HEAD
-=======
   { label: "Post Adoption Monitoring", to: "/parent/post-adoption-monitoring", icon: FiHeart, desc: "6-Month Welfare Scan", color: "bg-blue-600", ring: "ring-blue-500/20" },
->>>>>>> origin/rohit
   { label: "Visit Request",  to: "/parent/visit-request", icon: FiCalendar, desc: "Schedule a visit",   color: "bg-civic-600",  ring: "ring-civic-500/20"  },
   { label: "KYC Status",     to: "/parent/kyc",           icon: FiShield,   desc: "Compliance & Docs", color: "bg-emerald-600", ring: "ring-emerald-500/20" },
   { label: "My Profile",     to: "/parent/profile",       icon: FiUser,     desc: "View & update info", color: "bg-indigo-600", ring: "ring-indigo-500/20" },

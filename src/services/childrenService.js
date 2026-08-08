@@ -95,43 +95,11 @@ export const childrenService = {
    * @param {Array} capturedFrames
    * @returns {Promise<Object>}
    */
-<<<<<<< HEAD
-  async completeFaceEnrollment(childId, capturedFrames, masterEmbedding) {
-    const formattedFrames = (capturedFrames || []).map((frame) => ({
-      childId: frame.childId || childId,
-      pose: frame.pose || "FRONT_NEUTRAL",
-      imageBase64: frame.imageBase64 || frame.imageUrl || "",
-      lightingQuality: frame.lightingQuality ?? 95,
-      blurScore: frame.blurScore ?? 92,
-    }));
-
-    const payload = {
-      childId,
-      capturedFrames: formattedFrames,
-    };
-
-    if (masterEmbedding && Array.isArray(masterEmbedding) && masterEmbedding.length === 512) {
-      payload.masterEmbedding = masterEmbedding;
-    }
-
-    console.log("===== FACE ENROLLMENT PAYLOAD =====");
-    console.log({
-      childId,
-      hasMasterEmbedding: !!payload.masterEmbedding,
-      masterEmbeddingLength: payload.masterEmbedding?.length,
-      capturedFramesLength: formattedFrames.length,
-      firstCapturedFrame: formattedFrames[0],
-    });
-    console.log("====================================");
-
-    const response = await apiClient.post(`/children/${childId}/face-enrollment/complete`, payload);
-=======
   async completeFaceEnrollment(childId, capturedFrames) {
     const response = await apiClient.post(`/children/${childId}/face-enrollment/complete`, {
       childId,
       capturedFrames,
     });
->>>>>>> origin/rohit
     return unwrap(response);
   },
 

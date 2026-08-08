@@ -21,16 +21,6 @@ export class OrphanageOwnershipGuard implements CanActivate {
 
     // For ORPHANAGE role, verify they're linked to an orphanage
     if (user.role === Role.ORPHANAGE) {
-<<<<<<< HEAD
-      const staffRecord = await this.prisma.orphanageStaff.findFirst({
-        where: {
-          userId: user.id,
-          isActive: true,
-        },
-      });
-
-      if (!staffRecord) {
-=======
       let orphanageId: string | undefined = user.orphanageId;
       const targetUserId = user.sub || user.id;
 
@@ -56,16 +46,11 @@ export class OrphanageOwnershipGuard implements CanActivate {
       }
 
       if (!orphanageId) {
->>>>>>> origin/rohit
         throw new NotFoundException('No orphanage found for this user');
       }
 
       // Store orphanageId in request for later use
-<<<<<<< HEAD
-      request.orphanageId = staffRecord.orphanageId;
-=======
       request.orphanageId = orphanageId;
->>>>>>> origin/rohit
       return true;
     }
 
