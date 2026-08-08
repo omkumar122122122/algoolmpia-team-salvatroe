@@ -26,14 +26,6 @@
     "prisma:studio": "prisma studio",
     "prisma:seed": "ts-node prisma/seed.ts",
     "seed": "tsx prisma/seed.ts"
-<<<<<<< HEAD
-
-    
-  
-
-    
-=======
->>>>>>> origin/rohit
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
@@ -45,10 +37,7 @@
     "@nestjs/mapped-types": "^2.0.4",
     "@nestjs/passport": "^10.0.3",
     "@nestjs/platform-express": "^10.3.0",
-<<<<<<< HEAD
-=======
     "@nestjs/schedule": "^6.1.3",
->>>>>>> origin/rohit
     "@nestjs/swagger": "^7.3.0",
     "@nestjs/throttler": "^5.1.1",
     "@prisma/client": "^6.16.2",
