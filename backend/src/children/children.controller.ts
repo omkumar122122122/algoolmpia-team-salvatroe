@@ -35,6 +35,7 @@ import {
   CreateChildDto,
   UpdateChildDto,
   FilterChildrenDto,
+  FilterHealthRecordsDto,
   ChildrenListResponseDto,
   ChildProfileDto,
   ChildBasicDto,
@@ -150,6 +151,20 @@ export class ChildrenController {
     @CurrentUser() user: JwtPayload,
   ): Promise<ChildBasicDto[]> {
     return this.childrenService.getRecentChildren(limit, user.sub, user.role);
+  }
+
+  @Get('health-records')
+  @Roles(Role.ADMIN, Role.ORPHANAGE)
+  @ApiOperation({ summary: 'Get health records with search, severity, date, department, and condition filters' })
+  @ApiResponse({
+    status: 200,
+    description: 'Health records retrieved successfully',
+  })
+  async getHealthRecords(
+    @Query() filterDto: FilterHealthRecordsDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.childrenService.findHealthRecords(filterDto, user.sub, user.role);
   }
 
   @Get(':id')

@@ -11,6 +11,7 @@ import {
   CreateChildDto,
   UpdateChildDto,
   FilterChildrenDto,
+  FilterHealthRecordsDto,
   ChildProfileDto,
   ChildBasicDto,
   ChildrenListResponseDto,
@@ -18,7 +19,7 @@ import {
   CreateChildResponseDto,
   ParentDetailsDto,
 } from './dto';
-import { Prisma } from '@prisma/client';
+import { Prisma, HealthStatus } from '@prisma/client';
 
 @Injectable()
 export class ChildrenService {
@@ -613,5 +614,120 @@ export class ChildrenService {
     if (orphanageId !== userOrphanageId) {
       throw new ForbiddenException('You can only register children for your orphanage');
     }
+  }
+
+  async findHealthRecords(
+    filterDto: FilterHealthRecordsDto,
+    userId: string,
+    userRole: Role,
+  ) {
+    const { search, severity, date, department, conditionType, orphanageId, page = 1, limit = 20 } = filterDto;
+
+    const andConditions: Prisma.HealthReportWhereInput[] = [];
+
+    if (userRole === Role.ORPHANAGE) {
+      const userOrphanageId = await this.getUserOrphanageId(userId);
+      andConditions.push({ child: { orphanageId: userOrphanageId } });
+    } else if (orphanageId) {
+      andConditions.push({ child: { orphanageId } });
+    }
+
+    if (search) {
+      andConditions.push({
+        OR: [
+          { child: { firstName: { contains: search, mode: 'insensitive' } } },
+          { child: { lastName: { contains: search, mode: 'insensitive' } } },
+          { child: { childCode: { contains: search, mode: 'insensitive' } } },
+          { diagnosis: { contains: search, mode: 'insensitive' } },
+          { findings: { contains: search, mode: 'insensitive' } },
+          { notes: { contains: search, mode: 'insensitive' } },
+          { facility: { contains: search, mode: 'insensitive' } },
+          { reportedBy: { contains: search, mode: 'insensitive' } },
+        ],
+      });
+    }
+
+    if (severity && severity !== 'all') {
+      const sevUpper = severity.toUpperCase();
+      if (['HEALTHY', 'MINOR_ILLNESS', 'CHRONIC_ILLNESS', 'CRITICAL', 'UNKNOWN'].includes(sevUpper)) {
+        andConditions.push({ healthStatus: sevUpper as any });
+      }
+    }
+
+    if (department && department !== 'all') {
+      andConditions.push({ facility: { contains: department, mode: 'insensitive' } });
+    }
+
+    if (conditionType && conditionType !== 'all') {
+      andConditions.push({ diagnosis: { contains: conditionType, mode: 'insensitive' } });
+    }
+
+    if (date) {
+      const filterDate = new Date(date);
+      if (!isNaN(filterDate.getTime())) {
+        const startOfDay = new Date(filterDate.setHours(0, 0, 0, 0));
+        const endOfDay = new Date(filterDate.setHours(23, 59, 59, 999));
+        andConditions.push({
+          reportDate: { gte: startOfDay, lte: endOfDay },
+        });
+      }
+    }
+
+    const where: Prisma.HealthReportWhereInput = andConditions.length > 0 ? { AND: andConditions } : {};
+
+    const skip = (page - 1) * limit;
+
+    const [reports, total] = await Promise.all([
+      this.prisma.healthReport.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { reportDate: 'desc' },
+        include: {
+          child: {
+            select: {
+              id: true,
+              childCode: true,
+              firstName: true,
+              lastName: true,
+              approximateAge: true,
+              gender: true,
+              bloodGroup: true,
+              orphanageId: true,
+            },
+          },
+        },
+      }),
+      this.prisma.healthReport.count({ where }),
+    ]);
+
+    return {
+      success: true,
+      data: reports.map((r) => ({
+        id: r.id,
+        childId: r.child.childCode,
+        childName: `${r.child.firstName} ${r.child.lastName || ''}`.trim(),
+        age: r.child.approximateAge,
+        gender: r.child.gender,
+        bloodGroup: r.child.bloodGroup,
+        reportDate: r.reportDate,
+        healthStatus: r.healthStatus,
+        facility: r.facility || 'General Medicine',
+        doctor: r.reportedBy || 'Staff Physician',
+        diagnosis: r.diagnosis || 'Routine Checkup',
+        findings: r.findings || 'No major concerns recorded.',
+        prescription: r.prescription || null,
+        notes: r.notes || null,
+        height: r.height,
+        weight: r.weight,
+        bmi: r.bmi,
+      })),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 }

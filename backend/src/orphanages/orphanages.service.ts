@@ -331,6 +331,11 @@ export class OrphanagesService {
       limit = 10,
       search,
       organizationType,
+      status,
+      isVerified,
+      hasMissingData,
+      section,
+      ownerSearch,
       minCompliance,
       maxCompliance,
       city,
@@ -342,65 +347,132 @@ export class OrphanagesService {
 
     const skip = (page - 1) * limit;
 
-    // Build where clause
+    // Build base where clause
     const where: Prisma.OrphanageWhereInput = {
       deletedAt: null,
-      isActive,
-      ...(search && {
-        OR: [
-          { name: { contains: search, mode: 'insensitive' } },
-          { code: { contains: search, mode: 'insensitive' } },
-          { city: { contains: search, mode: 'insensitive' } },
-        ],
-      }),
-      ...(organizationType && { organizationType: organizationType as OrganizationType }),
+      ...(isActive !== undefined && { isActive }),
+      ...(status && (status as any) !== 'all' && { status }),
+      ...(isVerified !== undefined && { isVerified }),
+      ...(organizationType && organizationType !== 'all' && { organizationType: organizationType as OrganizationType }),
       ...(minCompliance !== undefined && {
         complianceScore: { gte: minCompliance },
       }),
       ...(maxCompliance !== undefined && {
         complianceScore: { lte: maxCompliance },
       }),
-      ...(city && { city: { contains: city, mode: 'insensitive' } }),
-      ...(state && { state: { contains: state, mode: 'insensitive' } }),
+      ...(city && city !== 'all' && { city: { contains: city, mode: 'insensitive' } }),
+      ...(state && state !== 'all' && { state: { contains: state, mode: 'insensitive' } }),
     };
 
-    // Execute queries
+    if (search && search.trim() !== '') {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { code: { contains: search, mode: 'insensitive' } },
+        { registrationNumber: { contains: search, mode: 'insensitive' } },
+        { governmentLicenseNumber: { contains: search, mode: 'insensitive' } },
+        { city: { contains: search, mode: 'insensitive' } },
+        { state: { contains: search, mode: 'insensitive' } },
+        { officialEmail: { contains: search, mode: 'insensitive' } },
+        { emergencyContactPerson: { contains: search, mode: 'insensitive' } },
+        { bankName: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    if (ownerSearch && ownerSearch !== 'all' && ownerSearch.trim() !== '') {
+      where.OR = [
+        ...(where.OR || []),
+        { emergencyContactPerson: { contains: ownerSearch, mode: 'insensitive' } },
+        { emergencyContactEmail: { contains: ownerSearch, mode: 'insensitive' } },
+        { user: { firstName: { contains: ownerSearch, mode: 'insensitive' } } },
+        { user: { lastName: { contains: ownerSearch, mode: 'insensitive' } } },
+        { user: { email: { contains: ownerSearch, mode: 'insensitive' } } },
+      ];
+    }
+
+    if (hasMissingData) {
+      const missingConditions: Prisma.OrphanageWhereInput[] = [
+        { governmentLicenseNumber: null },
+        { bankAccountNumber: null },
+        { emergencyContactPerson: null },
+        { panNumber: null },
+        { gstNumber: null },
+        { isVerified: false },
+      ];
+
+      where.AND = [
+        ...(where.AND ? (Array.isArray(where.AND) ? where.AND : [where.AND]) : []),
+        { OR: missingConditions },
+      ];
+    }
+
+    if (section && section !== 'all') {
+      const secLower = section.toLowerCase();
+      if (secLower === 'license' || secLower === 'licenses') {
+        where.governmentLicenseNumber = { not: null };
+      } else if (secLower === 'bank') {
+        where.bankAccountNumber = { not: null };
+      } else if (secLower === 'emergency') {
+        where.emergencyContactPerson = { not: null };
+      } else if (secLower === 'contact') {
+        where.phone = { not: '' };
+      }
+    }
+
+    // Execute queries with relation included
     const [orphanages, total] = await Promise.all([
       this.prisma.orphanage.findMany({
         where,
         skip,
         take: limit,
         orderBy: { [sortBy]: sortOrder },
-        select: {
-          id: true,
-          code: true,
-          name: true,
-          city: true,
-          state: true,
-          totalCapacity: true,
-          currentOccupancy: true,
-          complianceScore: true,
-          organizationType: true,
-          isActive: true,
-          createdAt: true,
+        include: {
+          user: {
+            select: { id: true, firstName: true, lastName: true, email: true, phone: true },
+          },
         },
       }),
       this.prisma.orphanage.count({ where }),
     ]);
 
-    // Transform response
-    const data = orphanages.map((orphanage) => ({
-      id: orphanage.id,
-      code: orphanage.code,
-      name: orphanage.name,
-      city: orphanage.city,
-      state: orphanage.state,
-      capacity: orphanage.totalCapacity,
-      occupancy: orphanage.currentOccupancy,
-      compliance: orphanage.complianceScore,
-      organizationType: orphanage.organizationType,
-      isActive: orphanage.isActive,
-    }));
+    // Transform response with missing fields analysis and owner details
+    const data = orphanages.map((orphanage) => {
+      const missingFields: string[] = [];
+      if (!orphanage.governmentLicenseNumber) missingFields.push('Govt License');
+      if (!orphanage.bankAccountNumber) missingFields.push('Bank Account');
+      if (!orphanage.emergencyContactPerson) missingFields.push('Emergency Contact');
+      if (!orphanage.panNumber) missingFields.push('PAN');
+      if (!orphanage.isVerified) missingFields.push('KYC Verification');
+
+      return {
+        id: orphanage.id,
+        code: orphanage.code,
+        name: orphanage.name,
+        registrationNumber: orphanage.registrationNumber,
+        governmentLicenseNumber: orphanage.governmentLicenseNumber,
+        city: orphanage.city,
+        state: orphanage.state,
+        capacity: orphanage.totalCapacity,
+        occupancy: orphanage.currentOccupancy,
+        compliance: orphanage.complianceScore,
+        organizationType: orphanage.organizationType,
+        status: orphanage.status,
+        isActive: orphanage.isActive,
+        isVerified: orphanage.isVerified,
+        officialEmail: orphanage.officialEmail,
+        phone: orphanage.phone,
+        bankName: orphanage.bankName,
+        emergencyContactPerson: orphanage.emergencyContactPerson,
+        emergencyContactMobile: orphanage.emergencyContactMobile,
+        facilities: orphanage.facilities,
+        missingFields,
+        hasMissingData: missingFields.length > 0,
+        owner: orphanage.user ? {
+          id: orphanage.user.id,
+          name: `${orphanage.user.firstName} ${orphanage.user.lastName}`,
+          email: orphanage.user.email,
+        } : null,
+      };
+    });
 
     return {
       success: true,
@@ -472,22 +544,19 @@ export class OrphanagesService {
     }
 
     return {
-      success: true,
-      data: {
-        id: orphanage.id,
-        code: orphanage.code,
-        name: orphanage.name,
-        registrationNumber: orphanage.registrationNumber,
-        governmentLicenseNumber: orphanage.governmentLicenseNumber,
-        city: orphanage.city,
-        state: orphanage.state,
-        capacity: orphanage.totalCapacity,
-        occupancy: orphanage.currentOccupancy,
-        compliance: orphanage.complianceScore,
-        phone: orphanage.phone,
-        fullAddress: `${orphanage.addressLine1}, ${orphanage.city}, ${orphanage.state} ${orphanage.pincode}`,
-        organizationType: orphanage.organizationType,
-      },
+      id: orphanage.id,
+      code: orphanage.code,
+      name: orphanage.name,
+      registrationNumber: orphanage.registrationNumber,
+      governmentLicenseNumber: orphanage.governmentLicenseNumber,
+      city: orphanage.city,
+      state: orphanage.state,
+      capacity: orphanage.totalCapacity,
+      occupancy: orphanage.currentOccupancy,
+      compliance: orphanage.complianceScore,
+      phone: orphanage.phone,
+      fullAddress: `${orphanage.addressLine1}, ${orphanage.city}, ${orphanage.state} ${orphanage.pincode}`,
+      organizationType: orphanage.organizationType,
     };
   }
 
@@ -555,75 +624,69 @@ export class OrphanagesService {
       : [];
 
     return {
-      success: true,
-      data: {
-        id: orphanage.id,
-        code: orphanage.code,
-        name: orphanage.name,
-        registrationNumber: orphanage.registrationNumber,
-        governmentLicenseNumber: orphanage.governmentLicenseNumber,
-        establishmentDate: orphanage.establishmentDate,
-        organizationType: orphanage.organizationType,
-        numberOfChildren: orphanage.currentOccupancy,
-        capacity: orphanage.totalCapacity,
-        compliance: orphanage.complianceScore,
-        officialEmail: orphanage.officialEmail,
-        phone: orphanage.phone,
-        alternativeContact: orphanage.alternativePhone,
-        website: orphanage.website,
-        country: orphanage.country,
-        state: orphanage.state,
-        district: orphanage.district,
-        city: orphanage.city,
-        pinCode: orphanage.pincode,
-        fullAddress: `${orphanage.addressLine1}, ${orphanage.city}, ${orphanage.state} ${orphanage.pincode}`,
-        administrator: admin
-          ? {
-              name: `${admin.user.firstName} ${admin.user.lastName}`,
-              designation: admin.designation,
-              mobile: admin.user.phone,
-              email: admin.user.email,
-              profilePhoto: admin.user.avatar,
-            }
+      id: orphanage.id,
+      code: orphanage.code,
+      name: orphanage.name,
+      registrationNumber: orphanage.registrationNumber,
+      governmentLicenseNumber: orphanage.governmentLicenseNumber,
+      establishmentDate: orphanage.establishmentDate,
+      organizationType: orphanage.organizationType,
+      numberOfChildren: orphanage.currentOccupancy,
+      capacity: orphanage.totalCapacity,
+      compliance: orphanage.complianceScore,
+      officialEmail: orphanage.officialEmail,
+      phone: orphanage.phone,
+      alternativeContact: orphanage.alternativePhone,
+      website: orphanage.website,
+      country: orphanage.country,
+      state: orphanage.state,
+      district: orphanage.district,
+      city: orphanage.city,
+      pinCode: orphanage.pincode,
+      fullAddress: `${orphanage.addressLine1}, ${orphanage.city}, ${orphanage.state} ${orphanage.pincode}`,
+      administrator: admin
+        ? {
+            name: `${admin.user.firstName} ${admin.user.lastName}`,
+            designation: admin.designation,
+            mobile: admin.user.phone,
+            email: admin.user.email,
+            profilePhoto: admin.user.avatar,
+          }
+        : null,
+      kyc,
+      childSummary,
+      staff: staffSummary,
+      facilities: facilitiesArray.length > 0 ? facilitiesArray : [],
+      emergencyContact: {
+        contactPerson: (orphanage as any).emergencyContactPerson,
+        mobile: (orphanage as any).emergencyContactMobile,
+        email: (orphanage as any).emergencyContactEmail,
+        relationship: (orphanage as any).emergencyContactRelationship,
+      },
+      aiSafety: {
+        faceRecognitionEnabled: orphanage.faceRecognitionEnabled
+          ? 'Yes'
+          : 'No',
+        cctvInstalled: orphanage.cctvInstalled ? 'Yes' : 'No',
+        numberOfCameras: orphanage.numberOfCameras,
+        visitorFaceVerificationEnabled: 'No',
+        childAttendanceSystem: orphanage.biometricAttendanceEnabled
+          ? 'Biometric and face recognition'
+          : 'Manual',
+        gpsTrackingAvailable: orphanage.gpsTrackingAvailable ? 'Yes' : 'No',
+        emergencyAlertSystemEnabled: orphanage.emergencyAlertEnabled
+          ? 'Yes'
+          : 'No',
+      },
+      bankDetails: {
+        bankName: orphanage.bankName,
+        accountHolderName: orphanage.bankAccountHolder,
+        accountNumber: orphanage.bankAccountNumber
+          ? this.encryptionService.decryptAndMaskBankAccount(
+              orphanage.bankAccountNumber,
+            )
           : null,
-        kyc,
-        childSummary,
-        staff: staffSummary,
-        // FIX-2: Return facilities from database
-        facilities: facilitiesArray.length > 0 ? facilitiesArray : [],
-        // FIX-1: Return emergency contact from database
-        emergencyContact: {
-          contactPerson: (orphanage as any).emergencyContactPerson,
-          mobile: (orphanage as any).emergencyContactMobile,
-          email: (orphanage as any).emergencyContactEmail,
-          relationship: (orphanage as any).emergencyContactRelationship,
-        },
-        aiSafety: {
-          faceRecognitionEnabled: orphanage.faceRecognitionEnabled
-            ? 'Yes'
-            : 'No',
-          cctvInstalled: orphanage.cctvInstalled ? 'Yes' : 'No',
-          numberOfCameras: orphanage.numberOfCameras,
-          visitorFaceVerificationEnabled: 'No',
-          childAttendanceSystem: orphanage.biometricAttendanceEnabled
-            ? 'Biometric and face recognition'
-            : 'Manual',
-          gpsTrackingAvailable: orphanage.gpsTrackingAvailable ? 'Yes' : 'No',
-          emergencyAlertSystemEnabled: orphanage.emergencyAlertEnabled
-            ? 'Yes'
-            : 'No',
-        },
-        // FIX-3: Return decrypted and masked bank details
-        bankDetails: {
-          bankName: orphanage.bankName,
-          accountHolderName: orphanage.bankAccountHolder,
-          accountNumber: orphanage.bankAccountNumber
-            ? this.encryptionService.decryptAndMaskBankAccount(
-                orphanage.bankAccountNumber,
-              )
-            : null,
-          ifscCode: orphanage.bankIfscCode,
-        },
+        ifscCode: orphanage.bankIfscCode,
       },
     };
   }
@@ -666,14 +729,11 @@ export class OrphanagesService {
       : 0;
 
     return {
-      success: true,
-      data: {
-        totalAdmissions,
-        adoptedChildrenCount,
-        currentChildrenCount,
-        occupancyPercentage,
-        complianceScore: orphanage.complianceScore,
-      },
+      totalAdmissions,
+      adoptedChildrenCount,
+      currentChildrenCount,
+      occupancyPercentage,
+      complianceScore: orphanage.complianceScore,
     };
   }
 

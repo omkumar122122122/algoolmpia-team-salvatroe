@@ -4,8 +4,19 @@ import { apiClient } from './apiClient';
 // Backend always wraps responses as: { success, statusCode, data: <payload>, timestamp }
 // We extract .data so callers receive the actual payload directly.
 function unwrap(response) {
-  if (response && typeof response === 'object' && 'data' in response && 'success' in response) {
-    return response.data;
+  if (response && typeof response === 'object') {
+    let current = response;
+    while (
+      current &&
+      typeof current === 'object' &&
+      !Array.isArray(current) &&
+      'data' in current &&
+      current.data !== undefined &&
+      current.data !== null
+    ) {
+      current = current.data;
+    }
+    return current;
   }
   return response;
 }
@@ -18,7 +29,7 @@ export const orphanagesService = {
    */
   async getAll(params = {}) {
     const cleanParams = Object.entries(params)
-      .filter(([_, value]) => value !== undefined && value !== '')
+      .filter(([_, value]) => value !== undefined && value !== '' && value !== 'all')
       .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {});
 
     const response = await apiClient.get('/orphanages', cleanParams);
