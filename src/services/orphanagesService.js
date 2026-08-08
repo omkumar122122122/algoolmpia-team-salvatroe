@@ -29,7 +29,7 @@ export const orphanagesService = {
    */
   async getAll(params = {}) {
     const cleanParams = Object.entries(params)
-      .filter(([_, value]) => value !== undefined && value !== '')
+      .filter(([_, value]) => value !== undefined && value !== '' && value !== 'all')
       .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {});
 
     const response = await apiClient.get('/orphanages', cleanParams);
